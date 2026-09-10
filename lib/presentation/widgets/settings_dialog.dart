@@ -54,15 +54,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
         final l10n = l10nOf(context);
         final settings = context.watch<AppSettings>();
 
+        // Hug content height (web has no user-id row). Do not lock 0.98.
         return ParchmentModal(
           target: PlayUiTarget.settings,
-          shrinkContent: false,
-          aspectRatio: 0.98,
           alignment: Alignment.topCenter,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final topAir = constraints.maxHeight.isFinite
-                  ? constraints.maxHeight * 0.12
+              // Same top air as the old 0.98 window: 12% of (width / 0.98).
+              final topAir = constraints.maxWidth.isFinite
+                  ? (constraints.maxWidth / 0.98) * 0.12
                   : PlayUi.modalPadY;
               return Padding(
                 padding: EdgeInsets.only(top: topAir),

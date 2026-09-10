@@ -54,15 +54,15 @@ class CreditsDialog extends StatelessWidget {
       builder: (context) {
         final l10n = l10nOf(context);
         final copy = CreditsCopy.parse(l10n.creditsBody);
+        // Hug content — fixed 0.98 left empty bottom under short copy.
         return ParchmentModal(
           target: PlayUiTarget.credits,
-          shrinkContent: false,
-          aspectRatio: 0.98,
           alignment: Alignment.topCenter,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final topAir = constraints.maxHeight.isFinite
-                  ? constraints.maxHeight * 0.12
+              // Same top air as the old 0.98 window: 12% of (width / 0.98).
+              final topAir = constraints.maxWidth.isFinite
+                  ? (constraints.maxWidth / 0.98) * 0.12
                   : PlayUi.modalPadY;
               return Padding(
                 padding: EdgeInsets.only(top: topAir),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/presentation/app.dart';
 import 'package:sudoku_game/presentation/config/app_fonts.dart';
 import 'package:sudoku_game/presentation/config/web_back_button.dart';
@@ -16,5 +17,9 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
     kIsWeb ? HomeScreen.nightOverlayStyle : HomeScreen.splashOverlayStyle,
   );
+  StarlightAnalytics.instance.initialize();
   runApp(SudokuApp(locale: kIsWeb ? localeFromWebEntry() : null));
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    StarlightAnalytics.instance.ready();
+  });
 }

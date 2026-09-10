@@ -267,6 +267,8 @@
       </div>
     </div>
   </main>
+  <script src="../analytics-config.js"></script>
+  <script src="../analytics.js"></script>
   <script>
     (function () {
       var copies = {
@@ -370,12 +372,26 @@
       if (line2) line2.textContent = copy.line2;
       if (ctaLabel) ctaLabel.textContent = copy.cta;
       if (cta) {
-        cta.setAttribute("href", "../?lang=" + encodeURIComponent(lang));
+        var gameUrl = "../?lang=" + encodeURIComponent(lang);
+        cta.setAttribute("href", window.starlightAnalytics
+          ? window.starlightAnalytics.decorateUrl(gameUrl)
+          : gameUrl);
         cta.setAttribute("aria-label", copy.aria);
+        cta.addEventListener("click", function () {
+          window.starlightAnalytics?.trackJson(JSON.stringify({
+            event_name: "landing_cta_click",
+            screen_id: "landing",
+            target_id: "landing_cta",
+            target_type: "link",
+            is_interactive: true
+          }));
+        });
       }
       try {
         sessionStorage.setItem("starlight_lang", lang);
       } catch (error) {}
+      window.starlightAnalytics?.setScreen("landing", null, null);
+      window.starlightAnalytics?.trackJson(JSON.stringify({event_name: "landing_view"}));
     })();
   </script>
 </body>

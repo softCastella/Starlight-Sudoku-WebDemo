@@ -61,11 +61,15 @@ class _SettingsDialogState extends State<SettingsDialog> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               // Same top air as the old 0.98 window: 12% of (width / 0.98).
+              // Baked settings padY 16 was for tall fixed windows — when hugging,
+              // pad the content bottom up to common 40 so the scroll art clears.
               final topAir = constraints.maxWidth.isFinite
                   ? (constraints.maxWidth / 0.98) * 0.12
                   : PlayUi.modalPadY;
+              final bottomAir =
+                  (PlayUi.kModalPadY - PlayUi.modalPadBottom).clamp(0.0, 40.0);
               return Padding(
-                padding: EdgeInsets.only(top: topAir),
+                padding: EdgeInsets.only(top: topAir, bottom: bottomAir),
                 child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

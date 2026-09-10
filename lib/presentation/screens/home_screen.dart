@@ -10,6 +10,8 @@ import 'package:sudoku_game/presentation/audio/title_button_chime.dart';
 import 'package:sudoku_game/presentation/config/icon_baker.dart';
 import 'package:sudoku_game/presentation/config/icon_layout.dart';
 import 'package:sudoku_game/presentation/config/icon_layout_persist.dart';
+import 'package:sudoku_game/presentation/config/play_ui.dart';
+import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/config/title_art.dart';
 import 'package:sudoku_game/presentation/config/title_layout_persist.dart';
 import 'package:sudoku_game/presentation/notifiers/game_notifier.dart';
@@ -188,66 +190,70 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: EdgeInsets.only(bottom: media.padding.bottom),
                         child: Align(
                           alignment: Alignment(0, _alignY),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(36, 0, 36, 36),
-                            child: Transform.scale(
-                              scale: _scale,
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(maxWidth: _maxWidth),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ParchmentButton(
-                                      label: l10n.startNewPuzzle,
-                                      fontSize: _fontSize,
-                                      onPressStart: TitleButtonChime.play,
-                                      onPressed: () {
-                                        _startNewPuzzle(context);
-                                      },
-                                    ),
-                                    SizedBox(height: _gap),
-                                    Consumer<GameNotifier>(
-                                      builder: (context, gameNotifier, _) {
-                                        if (GameBalance.isWebDemo ||
-                                            !gameNotifier.hasActiveGame) {
-                                          return const SizedBox.shrink();
-                                        }
-                                        return Padding(
-                                          padding: EdgeInsets.only(bottom: _gap),
-                                          child: ParchmentButton(
-                                            label: l10n.continueGame,
-                                            fontSize: (_fontSize - 1).clamp(12, 18),
-                                            onPressStart: TitleButtonChime.play,
-                                            onPressed: () {
-                                              if (gameNotifier.continueGame()) {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        const GameScreen(),
-                                                  ),
-                                                );
-                                              }
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    ParchmentButton(
-                                      label: l10n.viewVillage,
-                                      fontSize: (_fontSize - 1).clamp(12, 18),
-                                      onPressStart: TitleButtonChime.play,
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                const VillageScreen(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
+                          child: Transform.translate(
+                            offset: Offset(0, _titleButtonDrop(context)),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(36, 0, 36, 36),
+                              child: Transform.scale(
+                                scale: _scale,
+                                child: ConstrainedBox(
+                                  constraints:
+                                      BoxConstraints(maxWidth: _maxWidth),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ParchmentButton(
+                                        label: l10n.startNewPuzzle,
+                                        onPressStart: TitleButtonChime.play,
+                                        onPressed: () {
+                                          _startNewPuzzle(context);
+                                        },
+                                      ),
+                                      SizedBox(height: _gap),
+                                      Consumer<GameNotifier>(
+                                        builder: (context, gameNotifier, _) {
+                                          if (GameBalance.isWebDemo ||
+                                              !gameNotifier.hasActiveGame) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Padding(
+                                            padding:
+                                                EdgeInsets.only(bottom: _gap),
+                                            child: ParchmentButton(
+                                              label: l10n.continueGame,
+                                              onPressStart:
+                                                  TitleButtonChime.play,
+                                              onPressed: () {
+                                                if (gameNotifier
+                                                    .continueGame()) {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) =>
+                                                          const GameScreen(),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      ParchmentButton(
+                                        label: l10n.viewVillage,
+                                        onPressStart: TitleButtonChime.play,
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const VillageScreen(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -288,6 +294,18 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+  }
+
+  /// JSON width bake made one parchment taller, so the cluster sits below
+  /// alignY 0.79. Half a button was a touch low; this is 3/8 of that height.
+  double _titleButtonDrop(BuildContext context) {
+    final width = PlayUi.using(
+      PlayUiTarget.titleButton,
+      () => PlayUi.buttonMaxWidth,
+      locale: Localizations.localeOf(context),
+    );
+    final used = width < _maxWidth ? width : _maxWidth;
+    return ParchmentButton.visibleHeightFor(used) * 3 / 8;
   }
 
   void _startNewPuzzle(BuildContext context) {

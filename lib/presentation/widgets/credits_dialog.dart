@@ -61,11 +61,14 @@ class CreditsDialog extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               // Same top air as the old 0.98 window: 12% of (width / 0.98).
+              // When hugging, keep ~40 bottom clear of the scroll art.
               final topAir = constraints.maxWidth.isFinite
                   ? (constraints.maxWidth / 0.98) * 0.12
                   : PlayUi.modalPadY;
+              final bottomAir =
+                  (PlayUi.kModalPadY - PlayUi.modalPadBottom).clamp(0.0, 40.0);
               return Padding(
-                padding: EdgeInsets.only(top: topAir),
+                padding: EdgeInsets.only(top: topAir, bottom: bottomAir),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

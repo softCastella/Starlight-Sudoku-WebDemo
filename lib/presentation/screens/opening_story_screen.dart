@@ -4,6 +4,7 @@ import 'package:sudoku_game/core/village/opening_story.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
+import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/config/play_ui_tune.dart';
 import 'package:sudoku_game/presentation/notifiers/game_notifier.dart';
 import 'package:sudoku_game/presentation/widgets/oval_image_button.dart';
@@ -103,22 +104,18 @@ class _OpeningStoryScreenState extends State<OpeningStoryScreen> {
                         PlayUi.screenPad,
                         12,
                         PlayUi.screenPad,
-                        28,
+                        PlayUi.screenPad,
                       ),
                       child: Container(
                         width: double.infinity,
-                        padding: EdgeInsets.fromLTRB(
-                          PlayUi.screenPad,
-                          PlayUi.screenPad,
-                          PlayUi.screenPad,
-                          16,
-                        ),
+                        padding: EdgeInsets.all(PlayUi.screenPad),
                         decoration: BoxDecoration(
                           color: const Color(0xF2FFF8E8),
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(color: const Color(0x66F5CC3D)),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
@@ -130,28 +127,33 @@ class _OpeningStoryScreenState extends State<OpeningStoryScreen> {
                               l10n.openingBody(_page),
                               style: PlayUi.bodyStyle().copyWith(height: 1.55),
                             ),
-                            SizedBox(height: PlayUi.rowGap * 2.25),
+                            SizedBox(height: PlayUi.rowGap * 1.5),
                             Row(
-                              children: List.generate(pages.length, (dot) {
-                                return Container(
-                                  margin: const EdgeInsets.only(right: 6),
-                                  width: dot == _page ? 16 : 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    color: dot == _page ? _gold : const Color(0xFFD8CBB0),
-                                    borderRadius: BorderRadius.circular(99),
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                for (var dot = 0; dot < pages.length; dot++)
+                                  Container(
+                                    margin: const EdgeInsets.only(right: 6),
+                                    width: dot == _page ? 16 : 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      color: dot == _page
+                                          ? _gold
+                                          : const Color(0xFFD8CBB0),
+                                      borderRadius: BorderRadius.circular(99),
+                                    ),
                                   ),
-                                );
-                              }),
-                            ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: OvalImageButton(
-                                label: isLast ? l10n.lightFirstWindow : l10n.next,
-                                width: isLast ? 148 : 80,
-                                onPressed: _next,
-                              ),
+                                const Spacer(),
+                                OvalImageButton(
+                                  label: isLast
+                                      ? l10n.lightFirstWindow
+                                      : l10n.next,
+                                  target: PlayUiTarget.openingButton,
+                                  width: PlayUi.kOvalCompactWidth,
+                                  expandToFitLabel: true,
+                                  onPressed: _next,
+                                ),
+                              ],
                             ),
                           ],
                         ),

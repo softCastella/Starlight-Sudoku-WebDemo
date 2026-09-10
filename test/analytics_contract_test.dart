@@ -40,4 +40,13 @@ void main() {
     expect(gaSet, isNot(contains('pointer_tap')));
     expect(gaSet, isNot(contains('cell_select')));
   });
+
+  test('game dialog variants expose heatmap overlay ids', () {
+    final retry = File('lib/presentation/widgets/retry_puzzle_dialog.dart')
+        .readAsStringSync();
+    final exit = File('lib/presentation/widgets/exit_game_dialog.dart')
+        .readAsStringSync();
+    expect(retry, contains("id: 'retry'"));
+    expect(exit, contains("id: 'exit'"));
+  });
 }

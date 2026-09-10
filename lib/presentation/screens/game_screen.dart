@@ -105,15 +105,16 @@ class _GameScreenState extends State<GameScreen> {
                     onPressed: _confirmRetry,
                   ),
                 ),
-                AnalyticsTapRegion(
-                  targetId: 'debug_skip',
-                  targetType: 'icon_button',
-                  child: IconButton(
-                    tooltip: l10n.skipTrialTooltip,
-                    icon: const Icon(Icons.bug_report),
-                    onPressed: _skipTrialStages,
+                if (GameBalance.showTrialSkipButton)
+                  AnalyticsTapRegion(
+                    targetId: 'debug_skip',
+                    targetType: 'icon_button',
+                    child: IconButton(
+                      tooltip: l10n.skipTrialTooltip,
+                      icon: const Icon(Icons.bug_report),
+                      onPressed: _skipTrialStages,
+                    ),
                   ),
-                ),
                 AnalyticsTapRegion(
                   targetId: 'settings',
                   targetType: 'icon_button',

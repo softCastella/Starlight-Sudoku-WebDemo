@@ -11,6 +11,8 @@ class ParchmentButton extends StatefulWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.onPressStart,
+    this.fontSize,
   });
 
   static const asset = 'assets/images/SystemUI/Button.png';
@@ -24,6 +26,10 @@ class ParchmentButton extends StatefulWidget {
 
   final String label;
   final VoidCallback? onPressed;
+  /// Web SFX: fire on pointer-down before [onPressed] (navigation).
+  final VoidCallback? onPressStart;
+  /// Optional label size override (title buttons). Null = PlayUi.button.
+  final double? fontSize;
 
   @override
   State<ParchmentButton> createState() => _ParchmentButtonState();
@@ -48,7 +54,7 @@ class _ParchmentButtonState extends State<ParchmentButton> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               PlayUi.applyScope(context);
-              final fontSize = PlayUi.button;
+              final fontSize = widget.fontSize ?? PlayUi.button;
               final width = constraints.maxWidth.isFinite
                   ? math.min(constraints.maxWidth, PlayUi.buttonMaxWidth)
                   : PlayUi.buttonMaxWidth;
@@ -60,70 +66,75 @@ class _ParchmentButtonState extends State<ParchmentButton> {
                     button: true,
                     enabled: enabled,
                     label: widget.label,
-                    child: GestureDetector(
-                      onTap: widget.onPressed,
-                      onTapDown: enabled
-                          ? (_) => setState(() => _pressed = true)
+                    child: Listener(
+                      onPointerDown: enabled && widget.onPressStart != null
+                          ? (_) => widget.onPressStart?.call()
                           : null,
-                      onTapUp: enabled
-                          ? (_) => setState(() => _pressed = false)
-                          : null,
-                      onTapCancel: enabled
-                          ? () => setState(() => _pressed = false)
-                          : null,
-                      child: AnimatedScale(
-                        duration: const Duration(milliseconds: 90),
-                        scale: _pressed ? 0.97 : 1,
-                        // Button.png has empty padding above/below the scroll.
-                        child: ClipRect(
-                          child: Align(
-                            alignment: const Alignment(0, -0.23),
-                            heightFactor: ParchmentButton.cropHeightFactor,
-                            child: AspectRatio(
-                              aspectRatio: ParchmentButton.imageAspectRatio,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                clipBehavior: Clip.hardEdge,
-                                children: [
-                                  Positioned.fill(
-                                    child: Opacity(
-                                      opacity: enabled ? 1 : 0.55,
-                                      child: Image.asset(
-                                        ParchmentButton.asset,
-                                        fit: BoxFit.contain,
-                                        alignment: Alignment.center,
-                                        filterQuality: FilterQuality.medium,
+                      child: GestureDetector(
+                        onTap: widget.onPressed,
+                        onTapDown: enabled
+                            ? (_) => setState(() => _pressed = true)
+                            : null,
+                        onTapUp: enabled
+                            ? (_) => setState(() => _pressed = false)
+                            : null,
+                        onTapCancel: enabled
+                            ? () => setState(() => _pressed = false)
+                            : null,
+                        child: AnimatedScale(
+                          duration: const Duration(milliseconds: 90),
+                          scale: _pressed ? 0.97 : 1,
+                          // Button.png has empty padding above/below the scroll.
+                          child: ClipRect(
+                            child: Align(
+                              alignment: const Alignment(0, -0.23),
+                              heightFactor: ParchmentButton.cropHeightFactor,
+                              child: AspectRatio(
+                                aspectRatio: ParchmentButton.imageAspectRatio,
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  clipBehavior: Clip.hardEdge,
+                                  children: [
+                                    Positioned.fill(
+                                      child: Opacity(
+                                        opacity: enabled ? 1 : 0.55,
+                                        child: Image.asset(
+                                          ParchmentButton.asset,
+                                          fit: BoxFit.contain,
+                                          alignment: Alignment.center,
+                                          filterQuality: FilterQuality.medium,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Positioned.fill(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: PlayUi.parchmentTextPad,
-                                      ),
-                                      child: Center(
-                                        child: Transform.translate(
-                                          offset: Offset(
-                                            PlayUi.buttonTextOffsetX,
-                                            PlayUi.buttonTextOffsetY,
-                                          ),
-                                          child: Text(
-                                            widget.label,
-                                            textAlign: TextAlign.center,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.clip,
-                                            style: TextStyle(
-                                              fontSize: fontSize,
-                                              fontWeight: FontWeight.w800,
-                                              color: _ink,
-                                              height: 1,
+                                    Positioned.fill(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: PlayUi.parchmentTextPad,
+                                        ),
+                                        child: Center(
+                                          child: Transform.translate(
+                                            offset: Offset(
+                                              PlayUi.buttonTextOffsetX,
+                                              PlayUi.buttonTextOffsetY,
+                                            ),
+                                            child: Text(
+                                              widget.label,
+                                              textAlign: TextAlign.center,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.clip,
+                                              style: TextStyle(
+                                                fontSize: fontSize,
+                                                fontWeight: FontWeight.w800,
+                                                color: _ink,
+                                                height: 1,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/config/game_balance.dart';
 import 'package:sudoku_game/core/progress/active_game_snapshot.dart';
 import 'package:sudoku_game/core/progress/player_statistics.dart';
@@ -19,7 +20,7 @@ class GameNotifier extends ChangeNotifier {
   static const int hintRewardPenalty = GameBalance.hintRewardPenalty;
 
   GameNotifier({GameProgressStore? progressStore})
-      : _progressStore = progressStore ?? GameProgressStore();
+    : _progressStore = progressStore ?? GameProgressStore();
 
   final GameProgressStore _progressStore;
   late SudokuBoard _board;
@@ -63,6 +64,7 @@ class GameNotifier extends ChangeNotifier {
   int get mistakesUsed => _mistakesUsed;
   int get lastMistakePenalty => _lastMistakePenalty;
   int get mistakeFlashId => _mistakeFlashId;
+  int get remainingCells => _remainingCells;
   bool get isFirstVillageComplete =>
       buildings.every((building) => building.isComplete);
 
@@ -170,7 +172,10 @@ class GameNotifier extends ChangeNotifier {
 
   bool get isPuzzleComplete {
     if (!_board.isFilled()) return false;
-    return SudokuValidator.isPuzzleComplete(_board.playerBoard, _board.solution);
+    return SudokuValidator.isPuzzleComplete(
+      _board.playerBoard,
+      _board.solution,
+    );
   }
 
   List<(int, int)> get invalidCells {
@@ -202,6 +207,26 @@ class GameNotifier extends ChangeNotifier {
     _undoHistory.clear();
     _undoMistakes.clear();
     _saveActiveGame();
+
+    final analytics = StarlightAnalytics.instance;
+    analytics.setGameContext(
+      stageId: level,
+      puzzleId: '${difficulty.name}-$level-v1',
+    );
+    analytics.track(
+      'puzzle_start',
+      stageId: level,
+      remainingCells: _remainingCells,
+      properties: {'difficulty': difficulty.name},
+    );
+    if (level >= 1 && level <= GameBalance.webDemoStageCount) {
+      analytics.track(
+        'stage_${level}_start',
+        stageId: level,
+        remainingCells: _remainingCells,
+        properties: {'attempt': 1, 'difficulty': difficulty.name},
+      );
+    }
 
     notifyListeners();
   }
@@ -239,18 +264,31 @@ class GameNotifier extends ChangeNotifier {
       return;
     }
     _recordUndoState();
+    final analytics = StarlightAnalytics.instance;
     if (value == 0) {
       _board.setValue(row, col, 0);
+      analytics.track(
+        'erase',
+        remainingCells: _remainingCells,
+        mistakeCount: _mistakesUsed,
+        hintCount: _hintsUsed,
+      );
     } else if (value >= 1 && value <= 9) {
       final isWrong = value != _board.solution[row][col];
       _board.setValue(row, col, value);
       if (isWrong) {
-        final penalty =
-            DifficultyConfig.getConfig(_difficulty).mistakeStarLightPenalty;
+        final penalty = DifficultyConfig.getConfig(_difficulty)
+            .mistakeStarLightPenalty;
         _mistakesUsed++;
         _lastMistakePenalty = penalty;
         _mistakeFlashId++;
       }
+      analytics.track(
+        isWrong ? 'wrong_input' : 'number_input',
+        remainingCells: _remainingCells,
+        mistakeCount: _mistakesUsed,
+        hintCount: _hintsUsed,
+      );
     }
     _saveActiveGame();
     notifyListeners();
@@ -261,6 +299,12 @@ class GameNotifier extends ChangeNotifier {
     _recordUndoState();
     _board.addMemo(row, col, number);
     _saveActiveGame();
+    StarlightAnalytics.instance.track(
+      'memo_input',
+      remainingCells: _remainingCells,
+      mistakeCount: _mistakesUsed,
+      hintCount: _hintsUsed,
+    );
     notifyListeners();
   }
 
@@ -269,6 +313,12 @@ class GameNotifier extends ChangeNotifier {
     _recordUndoState();
     _board.removeMemo(row, col, number);
     _saveActiveGame();
+    StarlightAnalytics.instance.track(
+      'memo_input',
+      remainingCells: _remainingCells,
+      mistakeCount: _mistakesUsed,
+      hintCount: _hintsUsed,
+    );
     notifyListeners();
   }
 
@@ -277,6 +327,12 @@ class GameNotifier extends ChangeNotifier {
     _recordUndoState();
     _board.clearMemo(row, col);
     _saveActiveGame();
+    StarlightAnalytics.instance.track(
+      'erase',
+      remainingCells: _remainingCells,
+      mistakeCount: _mistakesUsed,
+      hintCount: _hintsUsed,
+    );
     notifyListeners();
   }
 
@@ -300,6 +356,12 @@ class GameNotifier extends ChangeNotifier {
     _board.setValue(row, col, _board.solution[row][col]);
     _hintsUsed++;
     _saveActiveGame();
+    StarlightAnalytics.instance.track(
+      'hint_used',
+      remainingCells: _remainingCells,
+      mistakeCount: _mistakesUsed,
+      hintCount: _hintsUsed,
+    );
     notifyListeners();
     return true;
   }
@@ -310,6 +372,14 @@ class GameNotifier extends ChangeNotifier {
 
   void togglePause() {
     _isPaused = !_isPaused;
+    StarlightAnalytics.instance
+      ..setGamePaused(_isPaused)
+      ..track(
+        _isPaused ? 'pause' : 'resume',
+        remainingCells: _remainingCells,
+        mistakeCount: _mistakesUsed,
+        hintCount: _hintsUsed,
+      );
     _saveActiveGame();
     notifyListeners();
   }
@@ -325,10 +395,13 @@ class GameNotifier extends ChangeNotifier {
 
   /// 게임 포기 (리셋)
   void giveUp() {
-    _board = SudokuBoard(
-      solution: _board.solution,
-      puzzle: _board.puzzle,
+    StarlightAnalytics.instance.track(
+      'restart',
+      remainingCells: _remainingCells,
+      mistakeCount: _mistakesUsed,
+      hintCount: _hintsUsed,
     );
+    _board = SudokuBoard(solution: _board.solution, puzzle: _board.puzzle);
     _elapsedSeconds = 0;
     _totalStarLight = 0;
     _isPaused = false;
@@ -339,12 +412,42 @@ class GameNotifier extends ChangeNotifier {
     _undoHistory.clear();
     _undoMistakes.clear();
     _saveActiveGame();
+    if (_levelNumber <= GameBalance.webDemoStageCount) {
+      StarlightAnalytics.instance.track(
+        'stage_${_levelNumber}_start',
+        remainingCells: _remainingCells,
+        properties: {'attempt': 2, 'difficulty': _difficulty.name},
+      );
+    }
     notifyListeners();
   }
 
   /// 게임 완료시 점수 계산
   void completeGame() {
     if (_hasAwardedCurrentGame || !isPuzzleComplete) return;
+
+    final clearTime = _elapsedSeconds;
+    final analytics = StarlightAnalytics.instance;
+    if (_levelNumber <= GameBalance.webDemoStageCount) {
+      analytics.track(
+        'stage_${_levelNumber}_clear',
+        screenId: 'result',
+        remainingCells: 0,
+        mistakeCount: _mistakesUsed,
+        hintCount: _hintsUsed,
+        properties: {
+          'puzzle_clear_time': clearTime,
+          'difficulty': _difficulty.name,
+        },
+      );
+      if (_levelNumber == GameBalance.webDemoStageCount) {
+        analytics.track(
+          'demo_complete',
+          screenId: 'demo_complete',
+          stageId: _levelNumber,
+        );
+      }
+    }
 
     final isFirstClear = !_stageProgress.isCompleted(_difficulty, _levelNumber);
     if (isFirstClear) {
@@ -426,4 +529,9 @@ class GameNotifier extends ChangeNotifier {
     _undoHistory.add(_board.copy());
     _undoMistakes.add(_mistakesUsed);
   }
+
+  int get _remainingCells => _board.playerBoard.fold<int>(
+    0,
+    (total, row) => total + row.where((value) => value == 0).length,
+  );
 }

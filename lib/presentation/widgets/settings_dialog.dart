@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
@@ -16,6 +17,7 @@ class SettingsDialog extends StatefulWidget {
   const SettingsDialog({super.key});
 
   static Future<void> show(BuildContext context) {
+    StarlightAnalytics.instance.track('settings_open');
     return showDialog<void>(
       context: context,
       barrierColor: const Color(0xCC152433),
@@ -53,139 +55,143 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return PlayUiTokens(
-      target: PlayUiTarget.settings,
-      builder: (context) {
-        final l10n = l10nOf(context);
-        final settings = context.watch<AppSettings>();
+    return AnalyticsOverlay(
+      id: 'settings',
+      child: PlayUiTokens(
+        target: PlayUiTarget.settings,
+        builder: (context) {
+          final l10n = l10nOf(context);
+          final settings = context.watch<AppSettings>();
 
-        // Hug content height (web has no user-id row). Do not lock 0.98.
-        return ParchmentModal(
-          target: PlayUiTarget.settings,
-          alignment: Alignment.topCenter,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              // Same top air as the old 0.98 window: 12% of (width / 0.98).
-              // Baked settings padY 16 was for tall fixed windows — when hugging,
-              // pad the content bottom up to common 40 so the scroll art clears.
-              final topAir = constraints.maxWidth.isFinite
-                  ? (constraints.maxWidth / 0.98) * 0.12
-                  : PlayUi.modalPadY;
-              final bottomAir =
-                  (PlayUi.kModalPadY - PlayUi.modalPadBottom).clamp(0.0, 40.0);
-              return Padding(
-                padding: EdgeInsets.only(top: topAir, bottom: bottomAir),
-                child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FitLabel(
-            l10n.settingsTitle,
-            style: PlayUi.titleStyle(),
-            alignment: Alignment.center,
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: PlayUi.rowGap * 0.75),
-          _SettingsSwitchRow(
-            label: l10n.settingsBgm,
-            value: settings.bgmEnabled,
-            onChanged: settings.setBgmEnabled,
-          ),
-          _SettingsSwitchRow(
-            label: l10n.settingsSfx,
-            value: settings.sfxEnabled,
-            onChanged: settings.setSfxEnabled,
-          ),
-          SizedBox(height: PlayUi.rowGap * 1.5),
-          // Web demo is one-shot: no anonymous device id row.
-          if (!kIsWeb) ...[
-            Row(
-              children: [
-                Text(
-                  l10n.settingsUserId,
-                  style: PlayUi.captionStyle(),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    settings.userId.isEmpty ? '—' : settings.userId,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PlayUi.labelStyle(color: PlayUi.ink).copyWith(
-                      letterSpacing: 0.3,
-                    ),
+          // Hug content height (web has no user-id row). Do not lock 0.98.
+          return ParchmentModal(
+            target: PlayUiTarget.settings,
+            alignment: Alignment.topCenter,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Same top air as the old 0.98 window: 12% of (width / 0.98).
+                // Baked settings padY 16 was for tall fixed windows — when hugging,
+                // pad the content bottom up to common 40 so the scroll art clears.
+                final topAir = constraints.maxWidth.isFinite
+                    ? (constraints.maxWidth / 0.98) * 0.12
+                    : PlayUi.modalPadY;
+                final bottomAir = (PlayUi.kModalPadY - PlayUi.modalPadBottom)
+                    .clamp(0.0, 40.0);
+                return Padding(
+                  padding: EdgeInsets.only(top: topAir, bottom: bottomAir),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FitLabel(
+                        l10n.settingsTitle,
+                        style: PlayUi.titleStyle(),
+                        alignment: Alignment.center,
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: PlayUi.rowGap * 0.75),
+                      _SettingsSwitchRow(
+                        label: l10n.settingsBgm,
+                        value: settings.bgmEnabled,
+                        onChanged: settings.setBgmEnabled,
+                      ),
+                      _SettingsSwitchRow(
+                        label: l10n.settingsSfx,
+                        value: settings.sfxEnabled,
+                        onChanged: settings.setSfxEnabled,
+                      ),
+                      SizedBox(height: PlayUi.rowGap * 1.5),
+                      // Web demo is one-shot: no anonymous device id row.
+                      if (!kIsWeb) ...[
+                        Row(
+                          children: [
+                            Text(
+                              l10n.settingsUserId,
+                              style: PlayUi.captionStyle(),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                settings.userId.isEmpty ? '—' : settings.userId,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: PlayUi.labelStyle(color: PlayUi.ink)
+                                    .copyWith(letterSpacing: 0.3),
+                              ),
+                            ),
+                            GestureDetector(
+                              onTap: settings.userId.isEmpty
+                                  ? null
+                                  : () => _copyUserId(settings.userId),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Icon(
+                                  _copied ? Icons.check : Icons.copy,
+                                  size: 18,
+                                  color: _copied ? PlayUi.gold : PlayUi.muted,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: PlayUi.rowGap),
+                      ],
+                      GestureDetector(
+                        onTap: _openPrivacy,
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                l10n.settingsPrivacyPolicy,
+                                maxLines: 2,
+                                style: PlayUi.labelStyle(color: PlayUi.ink)
+                                    .copyWith(
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: PlayUi.ink,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.open_in_new,
+                              size: 16,
+                              color: PlayUi.muted,
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: PlayUi.rowGap),
+                      GestureDetector(
+                        onTap: () => CreditsDialog.show(context),
+                        onLongPress: PlayUiTune.isEditorEnabled
+                            ? () => PlayUiTuneScreen.open(context)
+                            : null,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            l10n.settingsCredits,
+                            style: PlayUi.labelStyle(color: PlayUi.ink)
+                                .copyWith(
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: PlayUi.ink,
+                                ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: PlayUi.rowGap * 1.5),
+                      ParchmentModalButton(
+                        asset: ParchmentModal.continueAsset,
+                        label: l10n.close,
+                        color: PlayUi.ink,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                ),
-                GestureDetector(
-                  onTap: settings.userId.isEmpty
-                      ? null
-                      : () => _copyUserId(settings.userId),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(
-                      _copied ? Icons.check : Icons.copy,
-                      size: 18,
-                      color: _copied ? PlayUi.gold : PlayUi.muted,
-                    ),
-                  ),
-                ),
-              ],
+                );
+              },
             ),
-            SizedBox(height: PlayUi.rowGap),
-          ],
-          GestureDetector(
-            onTap: _openPrivacy,
-            child: Row(
-              children: [
-                Flexible(
-                  child: Text(
-                    l10n.settingsPrivacyPolicy,
-                    maxLines: 2,
-                    style: PlayUi.labelStyle(color: PlayUi.ink).copyWith(
-                      decoration: TextDecoration.underline,
-                      decorationColor: PlayUi.ink,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.open_in_new,
-                  size: 16,
-                  color: PlayUi.muted,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: PlayUi.rowGap),
-          GestureDetector(
-            onTap: () => CreditsDialog.show(context),
-            onLongPress: PlayUiTune.isEditorEnabled
-                ? () => PlayUiTuneScreen.open(context)
-                : null,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.settingsCredits,
-                style: PlayUi.labelStyle(color: PlayUi.ink).copyWith(
-                  decoration: TextDecoration.underline,
-                  decorationColor: PlayUi.ink,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: PlayUi.rowGap * 1.5),
-          ParchmentModalButton(
-            asset: ParchmentModal.continueAsset,
-            label: l10n.close,
-            color: PlayUi.ink,
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
-                ),
-              );
-            },
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
@@ -207,20 +213,19 @@ class _SettingsSwitchRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Expanded(
-            child: FitLabel(
-              label,
-              style: PlayUi.labelStyle(),
-            ),
-          ),
-          Transform.scale(
-            scale: 0.82,
-            alignment: Alignment.centerRight,
-            child: Switch.adaptive(
-              value: value,
-              onChanged: onChanged,
-              activeThumbColor: PlayUi.gold,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          Expanded(child: FitLabel(label, style: PlayUi.labelStyle())),
+          AnalyticsTapRegion(
+            targetId: 'settings_toggle',
+            targetType: 'switch',
+            child: Transform.scale(
+              scale: 0.82,
+              alignment: Alignment.centerRight,
+              child: Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeThumbColor: PlayUi.gold,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ),
         ],

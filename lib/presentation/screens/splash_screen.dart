@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
 import 'package:sudoku_game/presentation/audio/splash_voice.dart';
@@ -134,9 +135,7 @@ class _SplashScreenState extends State<SplashScreen>
       GameBgm.rememberTitle();
       unawaited(GameBgm.setEnabled(false));
     }
-    unawaited(
-      context.read<AppSettings>().applyWebGateAudio(enabled: bgmOn),
-    );
+    unawaited(context.read<AppSettings>().applyWebGateAudio(enabled: bgmOn));
   }
 
   Future<void> _startSplash() async {
@@ -171,59 +170,62 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        if (_showOverlay) {
-          await SystemNavigator.pop();
-          return;
-        }
-        final leave = await ExitGameDialog.confirm(context);
-        if (leave) await SystemNavigator.pop();
-      },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: _showOverlay
-            ? HomeScreen.splashOverlayStyle
-            : HomeScreen.nightOverlayStyle,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            const HomeScreen(),
-            if (_showOverlay)
-              AbsorbPointer(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    FadeTransition(
-                      opacity: _overlayOpacity,
-                      child: const ColoredBox(
-                        color: Colors.white,
-                        child: SizedBox.expand(),
+    return AnalyticsScreen(
+      id: (_showOverlay || _showWebAudioGate) ? 'splash' : 'title',
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          if (_showOverlay) {
+            await SystemNavigator.pop();
+            return;
+          }
+          final leave = await ExitGameDialog.confirm(context);
+          if (leave) await SystemNavigator.pop();
+        },
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: _showOverlay
+              ? HomeScreen.splashOverlayStyle
+              : HomeScreen.nightOverlayStyle,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const HomeScreen(),
+              if (_showOverlay)
+                AbsorbPointer(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      FadeTransition(
+                        opacity: _overlayOpacity,
+                        child: const ColoredBox(
+                          color: Colors.white,
+                          child: SizedBox.expand(),
+                        ),
                       ),
-                    ),
-                    FadeTransition(
-                      opacity: _logoOpacity,
-                      child: ScaleTransition(
-                        alignment: Alignment.center,
-                        scale: _logoScale,
-                        child: const Center(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 48),
-                            child: Image(
-                              image: AssetImage(SplashScreen.logoAsset),
-                              width: 232,
-                              fit: BoxFit.contain,
+                      FadeTransition(
+                        opacity: _logoOpacity,
+                        child: ScaleTransition(
+                          alignment: Alignment.center,
+                          scale: _logoScale,
+                          child: const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 48),
+                              child: Image(
+                                image: AssetImage(SplashScreen.logoAsset),
+                                width: 232,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            if (_showWebAudioGate) _webAudioGate(),
-          ],
+              if (_showWebAudioGate) _webAudioGate(),
+            ],
+          ),
         ),
       ),
     );
@@ -236,9 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
       bgmOffLabel: l10n.webBgmOff,
       onBgmOnPointerDown: () {
         unawaited(GameBgm.startTitleFromGesture());
-        unawaited(
-          context.read<AppSettings>().applyWebGateAudio(enabled: true),
-        );
+        unawaited(context.read<AppSettings>().applyWebGateAudio(enabled: true));
         TitleButtonChime.unlockForWeb();
       },
       onBgmOnPressed: () => _finishWebAudioGate(bgmOn: true),

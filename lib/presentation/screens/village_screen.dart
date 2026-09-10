@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/village/building_progress.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
@@ -17,141 +18,169 @@ class VillageScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BgmScope(
-      cue: BgmCue.silence,
-      child: Consumer<GameNotifier>(
-      builder: (context, gameNotifier, _) {
-        final dawn = gameNotifier.villageDawn;
-        final nightSky = dawn < 1;
-        final header = nightSky ? const Color(0xFFFBF7EC) : const Color(0xFF24452D);
-        final headerShadow = nightSky
-            ? const [Shadow(color: Color(0xCC000000), blurRadius: 8, offset: Offset(0, 1))]
-            : const <Shadow>[];
-        final buildings = gameNotifier.buildings;
-        final completedCount = buildings.where((building) => building.isComplete).length;
+    return AnalyticsScreen(
+      id: 'village',
+      child: BgmScope(
+        cue: BgmCue.silence,
+        child: Consumer<GameNotifier>(
+          builder: (context, gameNotifier, _) {
+            final dawn = gameNotifier.villageDawn;
+            final nightSky = dawn < 1;
+            final header = nightSky
+                ? const Color(0xFFFBF7EC)
+                : const Color(0xFF24452D);
+            final headerShadow = nightSky
+                ? const [
+                    Shadow(
+                      color: Color(0xCC000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 1),
+                    ),
+                  ]
+                : const <Shadow>[];
+            final buildings = gameNotifier.buildings;
+            final completedCount = buildings
+                .where((building) => building.isComplete)
+                .length;
 
-        final l10n = l10nOf(context);
-        return Scaffold(
-          backgroundColor: Color.lerp(
-            const Color(0xFF1C3340),
-            const Color(0xFFF4F8EE),
-            dawn,
-          ),
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            title: Text(
-              l10n.villageTitle,
-              style: TextStyle(
-                color: header,
-                fontWeight: FontWeight.w700,
-                shadows: headerShadow,
+            final l10n = l10nOf(context);
+            return Scaffold(
+              backgroundColor: Color.lerp(
+                const Color(0xFF1C3340),
+                const Color(0xFFF4F8EE),
+                dawn,
               ),
-            ),
-            backgroundColor: Colors.transparent,
-            foregroundColor: header,
-            elevation: 0,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: Center(
-                  child: OvalImageButton(
-                    label: l10n.mission,
-                    target: PlayUiTarget.villageButton,
-                    width: PlayUi.kOvalCompactWidth,
-                    expandToFitLabel: true,
-                    onPressed: () => _openMissions(context),
+              extendBodyBehindAppBar: true,
+              appBar: AppBar(
+                title: Text(
+                  l10n.villageTitle,
+                  style: TextStyle(
+                    color: header,
+                    fontWeight: FontWeight.w700,
+                    shadows: headerShadow,
                   ),
                 ),
-              ),
-            ],
-          ),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              TweenAnimationBuilder<double>(
-                duration: const Duration(milliseconds: 900),
-                curve: Curves.easeOutCubic,
-                tween: Tween<double>(begin: 0, end: dawn),
-                builder: (context, mapDawn, _) => VillageMapWidget(
-                  buildings: buildings,
-                  dawn: mapDawn,
-                  expand: true,
-                  onBuildingSelected: (building) => _showBuildingDetails(
-                    context,
-                    building,
-                  ),
-                ),
-              ),
-              if (gameNotifier.isFirstVillageComplete)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 0, 32, 28),
-                    child: _NextVillageUnlockCard(
-                      onOpen: () => _showNextVillageDialog(context),
+                backgroundColor: Colors.transparent,
+                foregroundColor: header,
+                elevation: 0,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 0,
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Center(
+                      child: OvalImageButton(
+                        label: l10n.mission,
+                        target: PlayUiTarget.villageButton,
+                        width: PlayUi.kOvalCompactWidth,
+                        expandToFitLabel: true,
+                        onPressed: () => _openMissions(context),
+                      ),
                     ),
                   ),
-                ),
-              SafeArea(
-                child: PlayViewport(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, kToolbarHeight, 20, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              l10n.restoredCount(completedCount, buildings.length),
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: header,
-                                shadows: headerShadow,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              l10n.ownedStarlight(gameNotifier.starLightBalance),
-                              maxLines: 1,
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                                color: nightSky ? PlayUi.gold : PlayUi.goldOnLight,
-                                shadows: headerShadow,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                ],
+              ),
+              body: Stack(
+                fit: StackFit.expand,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeOutCubic,
+                    tween: Tween<double>(begin: 0, end: dawn),
+                    builder: (context, mapDawn, _) => VillageMapWidget(
+                      buildings: buildings,
+                      dawn: mapDawn,
+                      expand: true,
+                      onBuildingSelected: (building) {
+                        StarlightAnalytics.instance.track(
+                          'village_click',
+                          targetId: building.id,
+                          targetType: 'building',
+                          isInteractive: true,
+                        );
+                        _showBuildingDetails(context, building);
+                      },
                     ),
                   ),
-                ),
+                  if (gameNotifier.isFirstVillageComplete)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 0, 32, 28),
+                        child: _NextVillageUnlockCard(
+                          onOpen: () => _showNextVillageDialog(context),
+                        ),
+                      ),
+                    ),
+                  SafeArea(
+                    child: PlayViewport(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          20,
+                          kToolbarHeight,
+                          20,
+                          16,
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  l10n.restoredCount(
+                                    completedCount,
+                                    buildings.length,
+                                  ),
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: header,
+                                    shadows: headerShadow,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  l10n.ownedStarlight(
+                                    gameNotifier.starLightBalance,
+                                  ),
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: nightSky
+                                        ? PlayUi.gold
+                                        : PlayUi.goldOnLight,
+                                    shadows: headerShadow,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        );
-      },
-    ),
+            );
+          },
+        ),
+      ),
     );
   }
 
   void _openMissions(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const VillageMissionsScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const VillageMissionsScreen()),
     );
   }
 
@@ -198,7 +227,9 @@ class VillageScreen extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              building.isComplete ? status : l10n.villageDescription(building.id),
+              building.isComplete
+                  ? status
+                  : l10n.villageDescription(building.id),
               style: const TextStyle(height: 1.45, color: Color(0xFF4D6554)),
             ),
             if (!building.isComplete) ...[
@@ -245,7 +276,11 @@ class _NextVillageUnlockCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF5CC3D), width: 1.6),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
-          BoxShadow(color: Color(0x55F5CC3D), blurRadius: 16, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Color(0x55F5CC3D),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Row(
@@ -256,7 +291,10 @@ class _NextVillageUnlockCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.nextVillage, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  l10n.nextVillage,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 3),
                 Text(l10n.newStoryOpened),
               ],

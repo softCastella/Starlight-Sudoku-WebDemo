@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/config/game_balance.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/title_button_chime.dart';
@@ -138,7 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
               frameW = frameH * aspect;
             }
           }
-          final cacheW = (frameW * media.devicePixelRatio).round().clamp(480, 1440);
+          final cacheW = (frameW * media.devicePixelRatio).round().clamp(
+            480,
+            1440,
+          );
 
           return Stack(
             fit: StackFit.expand,
@@ -179,11 +183,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       Positioned(
                         right: 4,
                         top: media.padding.top + 4,
-                        child: IconButton(
-                          key: const Key('title-settings'),
-                          tooltip: l10n.settingsTooltip,
-                          icon: const Icon(Icons.settings, color: Colors.white),
-                          onPressed: () => SettingsDialog.show(context),
+                        child: AnalyticsTapRegion(
+                          targetId: 'settings',
+                          targetType: 'icon_button',
+                          child: IconButton(
+                            key: const Key('title-settings'),
+                            tooltip: l10n.settingsTooltip,
+                            icon: const Icon(
+                              Icons.settings,
+                              color: Colors.white,
+                            ),
+                            onPressed: () => SettingsDialog.show(context),
+                          ),
                         ),
                       ),
                       Padding(
@@ -197,13 +208,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Transform.scale(
                                 scale: _scale,
                                 child: ConstrainedBox(
-                                  constraints:
-                                      BoxConstraints(maxWidth: _maxWidth),
+                                  constraints: BoxConstraints(
+                                    maxWidth: _maxWidth,
+                                  ),
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       ParchmentButton(
                                         label: l10n.startNewPuzzle,
+                                        targetId: 'start_new_puzzle',
                                         onPressStart: TitleButtonChime.play,
                                         onPressed: () {
                                           _startNewPuzzle(context);
@@ -217,10 +230,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                             return const SizedBox.shrink();
                                           }
                                           return Padding(
-                                            padding:
-                                                EdgeInsets.only(bottom: _gap),
+                                            padding: EdgeInsets.only(
+                                              bottom: _gap,
+                                            ),
                                             child: ParchmentButton(
                                               label: l10n.continueGame,
+                                              targetId: 'continue_game',
                                               onPressStart:
                                                   TitleButtonChime.play,
                                               onPressed: () {
@@ -241,8 +256,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       ParchmentButton(
                                         label: l10n.viewVillage,
+                                        targetId: 'view_village',
                                         onPressStart: TitleButtonChime.play,
                                         onPressed: () {
+                                          StarlightAnalytics.instance.track(
+                                            'village_click',
+                                          );
                                           Navigator.push(
                                             context,
                                             MaterialPageRoute(
@@ -276,10 +295,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               fontSize: 11,
                               height: 1,
                               shadows: [
-                                Shadow(
-                                  color: Color(0xCC000000),
-                                  blurRadius: 6,
-                                ),
+                                Shadow(color: Color(0xCC000000), blurRadius: 6),
                               ],
                             ),
                           ),
@@ -673,7 +689,17 @@ class _LocaleDebugMenu extends StatelessWidget {
                   child: Text(choice.$2),
                 ),
             ],
+            onTap: () {
+              StarlightAnalytics.instance.track('language_open');
+            },
             onChanged: (value) {
+              StarlightAnalytics.instance.track(
+                'language_change',
+                properties: {
+                  'language_from': selected?.toLanguageTag() ?? 'system',
+                  'language_to': value?.toLanguageTag() ?? 'system',
+                },
+              );
               context.read<LocaleOverride>().setOverride(value);
             },
           ),

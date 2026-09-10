@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/presentation/notifiers/game_notifier.dart';
 import 'package:sudoku_game/presentation/widgets/sudoku_cell_guide.dart';
 import 'package:sudoku_game/presentation/widgets/sudoku_cell_widget.dart';
@@ -8,10 +9,7 @@ import 'package:sudoku_game/presentation/widgets/sudoku_cell_widget.dart';
 class SudokuBoardWidget extends StatefulWidget {
   final VoidCallback onCellSelected;
 
-  const SudokuBoardWidget({
-    super.key,
-    required this.onCellSelected,
-  });
+  const SudokuBoardWidget({super.key, required this.onCellSelected});
 
   @override
   State<SudokuBoardWidget> createState() => SudokuBoardWidgetState();
@@ -50,53 +48,68 @@ class SudokuBoardWidgetState extends State<SudokuBoardWidget> {
               child: AspectRatio(
                 aspectRatio: 1.0,
                 child: GridView.count(
-                crossAxisCount: 9,
-                mainAxisSpacing: 0,
-                crossAxisSpacing: 0,
-                physics: NeverScrollableScrollPhysics(),
-                children: List.generate(81, (index) {
-                  final row = index ~/ 9;
-                  final col = index % 9;
-                  final value = board.getValue(row, col);
-                  final isFixed = board.isFixedCell(row, col);
-                  final isInvalid = invalidCells.contains((row, col));
-                  final guide = SudokuCellGuide(
-                    difficulty: gameNotifier.difficulty,
-                    row: row,
-                    col: col,
-                    cellValue: value,
-                    selectedRow: _selectedRow,
-                    selectedCol: _selectedCol,
-                    selectedValue: selectedValue,
-                  );
-                  final memos = board.getMemo(row, col);
+                  crossAxisCount: 9,
+                  mainAxisSpacing: 0,
+                  crossAxisSpacing: 0,
+                  physics: NeverScrollableScrollPhysics(),
+                  children: List.generate(81, (index) {
+                    final row = index ~/ 9;
+                    final col = index % 9;
+                    final value = board.getValue(row, col);
+                    final isFixed = board.isFixedCell(row, col);
+                    final isInvalid = invalidCells.contains((row, col));
+                    final guide = SudokuCellGuide(
+                      difficulty: gameNotifier.difficulty,
+                      row: row,
+                      col: col,
+                      cellValue: value,
+                      selectedRow: _selectedRow,
+                      selectedCol: _selectedCol,
+                      selectedValue: selectedValue,
+                    );
+                    final memos = board.getMemo(row, col);
 
-                  return SudokuCellWidget(
-                    row: row,
-                    col: col,
-                    value: value,
-                    memos: memos,
-                    isFixed: isFixed,
-                    isInvalid: isInvalid,
-                    isSelected: guide.isSelected,
-                    isLineHint: guide.isRegionHint,
-                    isSameNumber: guide.isSameNumber,
-                    showFocusRing: guide.showFocusRing,
-                    onTap: () {
-                      setState(() {
-                        _selectedRow = row;
-                        _selectedCol = col;
-                      });
-                      widget.onCellSelected();
-                    },
-                    onLongPress: () {
-                      // 장시간 누르면 힌트 표시
-                      if (value == 0) {
-                        gameNotifier.showHint(row, col);
-                      }
-                    },
-                  );
-                }),
+                    return AnalyticsTapRegion(
+                      targetId: 'sudoku_cell',
+                      targetType: 'cell',
+                      interactionKind: 'cell_select',
+                      child: SudokuCellWidget(
+                        row: row,
+                        col: col,
+                        value: value,
+                        memos: memos,
+                        isFixed: isFixed,
+                        isInvalid: isInvalid,
+                        isSelected: guide.isSelected,
+                        isLineHint: guide.isRegionHint,
+                        isSameNumber: guide.isSameNumber,
+                        showFocusRing: guide.showFocusRing,
+                        onTap: () {
+                          setState(() {
+                            _selectedRow = row;
+                            _selectedCol = col;
+                          });
+                          widget.onCellSelected();
+                          StarlightAnalytics.instance.track(
+                            'cell_select',
+                            remainingCells: gameNotifier.remainingCells,
+                            mistakeCount: gameNotifier.mistakesUsed,
+                            hintCount: gameNotifier.hintsUsed,
+                            targetId: 'sudoku_cell',
+                            targetType: 'cell',
+                            isInteractive: true,
+                          );
+                        },
+                        onLongPress: () {
+                          // 장시간 누르면 힌트 표시
+                          if (value == 0) {
+                            StarlightAnalytics.instance.track('hint_open');
+                            gameNotifier.showHint(row, col);
+                          }
+                        },
+                      ),
+                    );
+                  }),
                 ),
               ),
             ),

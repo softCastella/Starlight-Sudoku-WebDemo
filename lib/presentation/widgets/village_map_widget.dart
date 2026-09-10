@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/village/building_progress.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/widgets/village_scene_backdrop.dart';
@@ -92,57 +93,71 @@ class _MapHotspot extends StatelessWidget {
     final name = l10n.buildingName(building.id);
     final dayLook = dawn >= 1;
     final pill = dayLook ? const Color(0xF2FFF8E8) : const Color(0xE6152433);
-    final labelColor = dayLook ? const Color(0xFF24452D) : const Color(0xFFFBF7EC);
+    final labelColor = dayLook
+        ? const Color(0xFF24452D)
+        : const Color(0xFFFBF7EC);
 
-    return Semantics(
-      button: true,
-      label: l10n.buildingSemantics(name, building.level),
-      child: InkWell(
-        onTap: onTap,
-        splashColor: glow.withValues(alpha: 0.18),
-        highlightColor: glow.withValues(alpha: 0.10),
-        customBorder: const StadiumBorder(),
-        child: SizedBox(
-          width: landmark.width,
-          height: landmark.height,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              if (building.isComplete)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 4),
-                  child: Icon(Icons.auto_awesome, color: Color(0xFFF5CC3D), size: 16),
-                ),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: landmark.width),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: pill,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: glow.withValues(alpha: restored ? 0.9 : 0.55),
+    return AnalyticsTapRegion(
+      targetId: building.id,
+      targetType: 'building',
+      interactionKind: 'village_click',
+      child: Semantics(
+        button: true,
+        label: l10n.buildingSemantics(name, building.level),
+        child: InkWell(
+          onTap: onTap,
+          splashColor: glow.withValues(alpha: 0.18),
+          highlightColor: glow.withValues(alpha: 0.10),
+          customBorder: const StadiumBorder(),
+          child: SizedBox(
+            width: landmark.width,
+            height: landmark.height,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (building.isComplete)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFFF5CC3D),
+                      size: 16,
                     ),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        l10n.buildingLevelLabel(name, building.level),
-                        maxLines: 1,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: labelColor,
-                          height: 1.1,
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: landmark.width),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: pill,
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: glow.withValues(alpha: restored ? 0.9 : 0.55),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          l10n.buildingLevelLabel(name, building.level),
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: labelColor,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

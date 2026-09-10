@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/village/opening_story.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
@@ -59,115 +60,129 @@ class _OpeningStoryScreenState extends State<OpeningStoryScreen> {
     final isLast = _page == pages.length - 1;
     final l10n = l10nOf(context);
 
-    return ListenableBuilder(
-      listenable: PlayUiTune.instance,
-      builder: (context, _) {
-    return BgmScope(
-      cue: BgmCue.silence,
-      child: Scaffold(
-        backgroundColor: VillageSceneBackdrop.nightSky,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 900),
-              curve: Curves.easeInOutCubic,
-              tween: Tween<double>(begin: _fromDawn, end: current.dawn),
-              builder: (context, dawn, _) => VillageSceneBackdrop(
-                dawn: dawn,
-                scene: current.dawn,
-              ),
-            ),
-            SafeArea(
-              child: PlayViewport(
-                child: Column(
-                  children: [
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _finish,
-                        child: Text(
-                          l10n.skip,
-                          style: TextStyle(
-                            color: Color.lerp(
-                              const Color(0xE6FFF8E8),
-                              const Color(0xE624452D),
-                              current.dawn,
+    return AnalyticsScreen(
+      id: 'opening_${_page + 1}',
+      child: ListenableBuilder(
+        listenable: PlayUiTune.instance,
+        builder: (context, _) {
+          return BgmScope(
+            cue: BgmCue.silence,
+            child: Scaffold(
+              backgroundColor: VillageSceneBackdrop.nightSky,
+              body: Stack(
+                fit: StackFit.expand,
+                children: [
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 900),
+                    curve: Curves.easeInOutCubic,
+                    tween: Tween<double>(begin: _fromDawn, end: current.dawn),
+                    builder: (context, dawn, _) =>
+                        VillageSceneBackdrop(dawn: dawn, scene: current.dawn),
+                  ),
+                  SafeArea(
+                    child: PlayViewport(
+                      child: Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: _finish,
+                              child: Text(
+                                l10n.skip,
+                                style: TextStyle(
+                                  color: Color.lerp(
+                                    const Color(0xE6FFF8E8),
+                                    const Color(0xE624452D),
+                                    current.dawn,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        PlayUi.screenPad,
-                        12,
-                        PlayUi.screenPad,
-                        PlayUi.screenPad,
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(PlayUi.screenPad),
-                        decoration: BoxDecoration(
-                          color: const Color(0xF2FFF8E8),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: const Color(0x66F5CC3D)),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.openingHeadline(_page),
-                              style: PlayUi.titleStyle(color: _ink),
+                          const Spacer(),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              PlayUi.screenPad,
+                              12,
+                              PlayUi.screenPad,
+                              PlayUi.screenPad,
                             ),
-                            SizedBox(height: PlayUi.rowGap * 1.25),
-                            Text(
-                              l10n.openingBody(_page),
-                              style: PlayUi.bodyStyle().copyWith(height: 1.55),
-                            ),
-                            SizedBox(height: PlayUi.rowGap * 1.5),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                for (var dot = 0; dot < pages.length; dot++)
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 6),
-                                    width: dot == _page ? 16 : 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: dot == _page
-                                          ? _gold
-                                          : const Color(0xFFD8CBB0),
-                                      borderRadius: BorderRadius.circular(99),
+                            child: Container(
+                              width: double.infinity,
+                              padding: EdgeInsets.all(PlayUi.screenPad),
+                              decoration: BoxDecoration(
+                                color: const Color(0xF2FFF8E8),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                  color: const Color(0x66F5CC3D),
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.openingHeadline(_page),
+                                    style: PlayUi.titleStyle(color: _ink),
+                                  ),
+                                  SizedBox(height: PlayUi.rowGap * 1.25),
+                                  Text(
+                                    l10n.openingBody(_page),
+                                    style: PlayUi.bodyStyle().copyWith(
+                                      height: 1.55,
                                     ),
                                   ),
-                                const Spacer(),
-                                OvalImageButton(
-                                  label: isLast
-                                      ? l10n.lightFirstWindow
-                                      : l10n.next,
-                                  target: PlayUiTarget.openingButton,
-                                  width: PlayUi.kOvalCompactWidth,
-                                  expandToFitLabel: true,
-                                  onPressed: _next,
-                                ),
-                              ],
+                                  SizedBox(height: PlayUi.rowGap * 1.5),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      for (
+                                        var dot = 0;
+                                        dot < pages.length;
+                                        dot++
+                                      )
+                                        Container(
+                                          margin: const EdgeInsets.only(
+                                            right: 6,
+                                          ),
+                                          width: dot == _page ? 16 : 7,
+                                          height: 7,
+                                          decoration: BoxDecoration(
+                                            color: dot == _page
+                                                ? _gold
+                                                : const Color(0xFFD8CBB0),
+                                            borderRadius: BorderRadius.circular(
+                                              99,
+                                            ),
+                                          ),
+                                        ),
+                                      const Spacer(),
+                                      OvalImageButton(
+                                        label: isLast
+                                            ? l10n.lightFirstWindow
+                                            : l10n.next,
+                                        target: PlayUiTarget.openingButton,
+                                        width: PlayUi.kOvalCompactWidth,
+                                        expandToFitLabel: true,
+                                        onPressed: _next,
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          );
+        },
       ),
-    );
-      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
@@ -45,6 +46,7 @@ class TrialEndDialog extends StatefulWidget {
 class _TrialEndDialogState extends State<TrialEndDialog> {
   /// Play Store only after 「이동하기」. Do not open on show. Back from Store returns here.
   Future<void> _openPlayStore() async {
+    StarlightAnalytics.instance.track('store_cta_click');
     try {
       await InAppReview.instance.openStoreListing();
       return;
@@ -62,53 +64,56 @@ class _TrialEndDialogState extends State<TrialEndDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return PlayUiTokens(
-      target: PlayUiTarget.trialEnd,
-      builder: (context) {
-        final l10n = l10nOf(context);
+    return AnalyticsOverlay(
+      id: 'demo_complete',
+      child: PlayUiTokens(
+        target: PlayUiTarget.trialEnd,
+        builder: (context) {
+          final l10n = l10nOf(context);
 
-        return ParchmentModal(
-          target: PlayUiTarget.trialEnd,
-          child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.trialEndTitleForBuild,
-            textAlign: TextAlign.center,
-            style: PlayUi.titleStyle(),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.trialEndMessageForBuild,
-            textAlign: TextAlign.center,
-            style: PlayUi.captionStyle().copyWith(
-              fontSize: PlayUi.body,
-              height: 1.4,
+          return ParchmentModal(
+            target: PlayUiTarget.trialEnd,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  l10n.trialEndTitleForBuild,
+                  textAlign: TextAlign.center,
+                  style: PlayUi.titleStyle(),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  l10n.trialEndMessageForBuild,
+                  textAlign: TextAlign.center,
+                  style: PlayUi.captionStyle().copyWith(
+                    fontSize: PlayUi.body,
+                    height: 1.4,
+                  ),
+                ),
+                SizedBox(height: PlayUi.rowGap * 1.5),
+                ParchmentModalButtonRow(
+                  children: [
+                    ParchmentModalButton(
+                      key: const Key('trial-end-store'),
+                      asset: ParchmentModal.exitAsset,
+                      label: l10n.sendReview,
+                      color: PlayUi.cream,
+                      onPressed: _openPlayStore,
+                    ),
+                    ParchmentModalButton(
+                      key: const Key('trial-end-close'),
+                      asset: ParchmentModal.continueAsset,
+                      label: l10n.close,
+                      color: PlayUi.ink,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: PlayUi.rowGap * 1.5),
-          ParchmentModalButtonRow(
-            children: [
-              ParchmentModalButton(
-                key: const Key('trial-end-store'),
-                asset: ParchmentModal.exitAsset,
-                label: l10n.sendReview,
-                color: PlayUi.cream,
-                onPressed: _openPlayStore,
-              ),
-              ParchmentModalButton(
-                key: const Key('trial-end-close'),
-                asset: ParchmentModal.continueAsset,
-                label: l10n.close,
-                color: PlayUi.ink,
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
-    );
-      },
     );
   }
 }

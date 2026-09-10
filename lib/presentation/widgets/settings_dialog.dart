@@ -7,6 +7,7 @@ import 'package:sudoku_game/presentation/config/play_ui.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/config/play_ui_tune.dart';
 import 'package:sudoku_game/presentation/notifiers/app_settings.dart';
+import 'package:sudoku_game/presentation/screens/play_ui_tune_screen.dart';
 import 'package:sudoku_game/presentation/widgets/credits_dialog.dart';
 import 'package:sudoku_game/presentation/widgets/parchment_modal.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -47,13 +48,25 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nOf(context);
-    final settings = context.watch<AppSettings>();
-
-    return ParchmentModal(
+    return PlayUiTokens(
       target: PlayUiTarget.settings,
-      aspectRatio: 1.18,
-      child: Column(
+      builder: (context) {
+        final l10n = l10nOf(context);
+        final settings = context.watch<AppSettings>();
+
+        return ParchmentModal(
+          target: PlayUiTarget.settings,
+          shrinkContent: false,
+          aspectRatio: 0.98,
+          alignment: Alignment.topCenter,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final topAir = constraints.maxHeight.isFinite
+                  ? constraints.maxHeight * 0.12
+                  : PlayUi.modalPadY;
+              return Padding(
+                padding: EdgeInsets.only(top: topAir),
+                child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FitLabel(
@@ -62,7 +75,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             alignment: Alignment.center,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: PlayUi.rowGap * 0.75),
           _SettingsSwitchRow(
             label: l10n.settingsBgm,
             value: settings.bgmEnabled,
@@ -73,7 +86,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
             value: settings.sfxEnabled,
             onChanged: settings.setSfxEnabled,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: PlayUi.rowGap * 1.5),
           // Web demo is one-shot: no anonymous device id row.
           if (!kIsWeb) ...[
             Row(
@@ -108,7 +121,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: PlayUi.rowGap),
           ],
           GestureDetector(
             onTap: _openPrivacy,
@@ -133,11 +146,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: PlayUi.rowGap),
           GestureDetector(
             onTap: () => CreditsDialog.show(context),
             onLongPress: PlayUiTune.isEditorEnabled
-                ? () => PlayUiTune.instance.setPanelOpen(true)
+                ? () => PlayUiTuneScreen.open(context)
                 : null,
             child: Align(
               alignment: Alignment.centerLeft,
@@ -150,23 +163,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
             ),
           ),
-          if (PlayUiTune.isEditorEnabled) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: GestureDetector(
-                onTap: () => PlayUiTune.instance.setPanelOpen(true),
-                child: Text(
-                  'UI 편집',
-                  style: PlayUi.labelStyle(color: PlayUi.ink).copyWith(
-                    decoration: TextDecoration.underline,
-                    decorationColor: PlayUi.ink,
-                  ),
-                ),
-              ),
-            ),
-          ],
-          const SizedBox(height: 12),
+          SizedBox(height: PlayUi.rowGap * 1.5),
           ParchmentModalButton(
             asset: ParchmentModal.continueAsset,
             label: l10n.close,
@@ -174,7 +171,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
             onPressed: () => Navigator.pop(context),
           ),
         ],
-      ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

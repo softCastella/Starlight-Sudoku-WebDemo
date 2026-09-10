@@ -19,45 +19,45 @@ class ExitGameDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nOf(context);
-
-    return ParchmentModal(
+    return PlayUiTokens(
       target: PlayUiTarget.exitGame,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: Text(
-              l10n.exitGameTitle,
-              textAlign: TextAlign.center,
-              style: PlayUi.titleStyle(),
-            ),
-          ),
-          SizedBox(height: PlayUi.rowGap * 2),
-          Row(
+      builder: (context) {
+        final l10n = l10nOf(context);
+
+        return ParchmentModal(
+          target: PlayUiTarget.exitGame,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.continueAsset,
-                  label: l10n.stayInGame,
-                  color: PlayUi.ink,
-                  onPressed: () => Navigator.pop(context, false),
+              SizedBox(
+                width: double.infinity,
+                child: Text(
+                  l10n.exitGameTitle,
+                  textAlign: TextAlign.center,
+                  style: PlayUi.titleStyle(),
                 ),
               ),
-              SizedBox(width: PlayUi.rowGap),
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.exitAsset,
-                  label: l10n.quitGame,
-                  color: PlayUi.cream,
-                  onPressed: () => Navigator.pop(context, true),
-                ),
+              SizedBox(height: PlayUi.rowGap * 2),
+              ParchmentModalButtonRow(
+                children: [
+                  ParchmentModalButton(
+                    asset: ParchmentModal.continueAsset,
+                    label: l10n.stayInGame,
+                    color: PlayUi.ink,
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  ParchmentModalButton(
+                    asset: ParchmentModal.exitAsset,
+                    label: l10n.quitGame,
+                    color: PlayUi.cream,
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
+import 'package:sudoku_game/presentation/config/play_ui_baked.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/config/play_ui_tune_persist.dart';
 
@@ -14,10 +16,22 @@ class PlayUiTune extends ChangeNotifier {
   static final PlayUiTune instance = PlayUiTune._();
 
   static const schemaVersion = 3;
+  static const editorPanelHeightFactor = 0.32;
   static const _prefsKey = 'play_ui_tune_v2';
   static const _legacyPrefsKey = 'play_ui_tune_v1';
   static const _uiTuner = bool.fromEnvironment('UI_TUNER');
   static const _storeBuild = bool.fromEnvironment('STORE_BUILD');
+  static const localeIds = ['ko', 'en', 'ja', 'zh', 'zh_TW'];
+  static const _buttonKeys = {
+    'button',
+    'buttonMaxWidth',
+    'buttonMinWidth',
+    'buttonHeightScale',
+    'ovalEndFraction',
+    'parchmentTextPad',
+    'buttonTextOffsetX',
+    'buttonTextOffsetY',
+  };
 
   /// Play AAB (`STORE_BUILD`) and public web (`WEB_DEMO` without `UI_TUNER`) hide this.
   static bool get isEditorEnabled {
@@ -56,9 +70,40 @@ class PlayUiTune extends ChangeNotifier {
 
   final Map<String, double> common = Map<String, double>.from(defaults);
   final Map<String, Map<String, double>> overlays = {};
+  /// localeId → targetId → field → value. Button sizes live here.
+  final Map<String, Map<String, Map<String, double>>> localeOverlays = {};
 
   bool panelOpen = false;
+  /// When true, [PlayUi] getters follow [editingTarget]/[editingLocale]
+  /// even inside LayoutBuilder after [PlayUi.using] has returned.
+  bool previewReads = false;
   PlayUiTarget editingTarget = PlayUiTarget.common;
+  String editingLocale = 'ko';
+  final List<PlayUiTarget> _targetStack = [];
+  Map<String, dynamic>? _checkpoint;
+  int _epoch = 0;
+  Future<void> _saveChain = Future<void>.value();
+
+  static String localeIdFrom(Locale locale) {
+    if (locale.languageCode == 'zh' && locale.countryCode == 'TW') {
+      return 'zh_TW';
+    }
+    return locale.languageCode;
+  }
+
+  static Locale localeFromId(String id) {
+    if (id == 'zh_TW') return const Locale('zh', 'TW');
+    return Locale(id);
+  }
+
+  static String localeLabel(String id) => switch (id) {
+        'ko' => '한',
+        'en' => 'EN',
+        'ja' => '日',
+        'zh' => '简',
+        'zh_TW' => '繁',
+        _ => id,
+      };
 
   double get caption => common['caption']!;
   set caption(double v) => common['caption'] = v;
@@ -115,11 +160,21 @@ class PlayUiTune extends ChangeNotifier {
 
   Map<String, Object> toJsonObject() => {
         'schema': schemaVersion,
-        'common': toMap(),
+        // Locales first: chat paste truncates the tail, and common is mostly defaults.
+        'locales': {
+          for (final localeEntry in PlayUiBaked.merge(localeOverlays).entries)
+            if (localeEntry.value.values.any((fields) => fields.isNotEmpty))
+              localeEntry.key: {
+                for (final targetEntry in localeEntry.value.entries)
+                  if (targetEntry.value.isNotEmpty)
+                    targetEntry.key: Map<String, double>.from(targetEntry.value),
+              },
+        },
         'targets': {
           for (final entry in overlays.entries)
             if (entry.value.isNotEmpty) entry.key: Map<String, double>.from(entry.value),
         },
+        'common': toMap(),
       };
 
   String get layoutJson =>
@@ -127,13 +182,24 @@ class PlayUiTune extends ChangeNotifier {
 
   double commonOf(String key) => common[key] ?? defaults[key] ?? 0;
 
-  double read(String key, PlayUiTarget target) {
-    final base = commonOf(key);
-    if (target == PlayUiTarget.common) return base;
-    return overlays[target.id]?[key] ?? base;
+  double read(String key, PlayUiTarget target, {String? locale}) {
+    _promoteOverlaysIntoLocales();
+    final loc = locale ?? editingLocale;
+    return localeOverlays[loc]?[target.id]?[key] ??
+        _bakedOrCommon(loc, target, key);
   }
 
-  double editorValue(String key) => read(key, editingTarget);
+  double _bakedOrCommon(String locale, PlayUiTarget target, String key) {
+    final baked = PlayUiBaked.value(locale, target.id, key);
+    if (baked != null) return baked;
+    if (target == PlayUiTarget.titleButton && key == 'button') {
+      return PlayUi.kTitleButton;
+    }
+    return commonOf(key);
+  }
+
+  double editorValue(String key) =>
+      read(key, editingTarget, locale: editingLocale);
 
   void setEditingTarget(PlayUiTarget target) {
     if (editingTarget == target) return;
@@ -141,48 +207,195 @@ class PlayUiTune extends ChangeNotifier {
     notifyListeners();
   }
 
+  void pushTarget(PlayUiTarget target) {
+    _targetStack.add(target);
+    editingTarget = target;
+    notifyListeners();
+  }
+
+  void popTarget(PlayUiTarget target) {
+    for (var i = _targetStack.length - 1; i >= 0; i--) {
+      if (_targetStack[i] == target) {
+        _targetStack.removeAt(i);
+        break;
+      }
+    }
+    editingTarget =
+        _targetStack.isEmpty ? PlayUiTarget.common : _targetStack.last;
+    notifyListeners();
+  }
+
+  void resetEditorChrome() {
+    _targetStack.clear();
+    editingTarget = PlayUiTarget.common;
+    editingLocale = 'ko';
+    panelOpen = false;
+    previewReads = false;
+  }
+
+  void setPreviewReads(bool value) {
+    if (previewReads == value) return;
+    previewReads = value;
+    notifyListeners();
+  }
+
+  void setEditingLocale(String locale) {
+    if (editingLocale == locale) return;
+    editingLocale = locale;
+    notifyListeners();
+  }
+
   void setField(String key, double value) {
+    _epoch++;
+    _promoteOverlaysIntoLocales();
     final clamped = _clamp(key, value);
-    if (editingTarget == PlayUiTarget.common) {
+    if (editingTarget == PlayUiTarget.common && !_buttonKeys.contains(key)) {
       common[key] = clamped;
     } else {
-      final overlay = Map<String, double>.from(overlays[editingTarget.id] ?? {});
-      if ((clamped - commonOf(key)).abs() < 0.001) {
-        overlay.remove(key);
-      } else {
-        overlay[key] = clamped;
-      }
-      if (overlay.isEmpty) {
-        overlays.remove(editingTarget.id);
-      } else {
-        overlays[editingTarget.id] = overlay;
-      }
+      _writeLocaleField(editingLocale, editingTarget, key, clamped);
     }
     notifyListeners();
     unawaited(_save());
   }
 
+  void _writeLocaleField(
+    String locale,
+    PlayUiTarget target,
+    String key,
+    double clamped,
+  ) {
+    final fallback = _bakedOrCommon(locale, target, key);
+    final byLocale = Map<String, Map<String, double>>.from(
+      localeOverlays[locale] ?? {},
+    );
+    final overlay = Map<String, double>.from(byLocale[target.id] ?? {});
+    if ((clamped - fallback).abs() < 0.001) {
+      overlay.remove(key);
+    } else {
+      overlay[key] = clamped;
+    }
+    if (overlay.isEmpty) {
+      byLocale.remove(target.id);
+    } else {
+      byLocale[target.id] = overlay;
+    }
+    if (byLocale.isEmpty) {
+      localeOverlays.remove(locale);
+    } else {
+      localeOverlays[locale] = byLocale;
+    }
+  }
+
+  /// Factory-defaults the selected screen + language only.
   void resetCurrent() {
+    _epoch++;
+    _promoteOverlaysIntoLocales();
+    final byLocale = Map<String, Map<String, double>>.from(
+      localeOverlays[editingLocale] ?? {},
+    );
+    byLocale.remove(editingTarget.id);
+    if (byLocale.isEmpty) {
+      localeOverlays.remove(editingLocale);
+    } else {
+      localeOverlays[editingLocale] = byLocale;
+    }
     if (editingTarget == PlayUiTarget.common) {
       common
         ..clear()
         ..addAll(defaults);
-    } else {
-      overlays.remove(editingTarget.id);
     }
     notifyListeners();
     unawaited(_save());
   }
 
+  /// Puts the selected screen back to the last 저장 snapshot.
+  void restoreCurrentFromCheckpoint() {
+    _epoch++;
+    _promoteOverlaysIntoLocales();
+    final snapshot = _checkpoint;
+    if (snapshot == null) {
+      resetCurrent();
+      return;
+    }
+    _clearCurrentLocaleTarget();
+    _applySlice(snapshot, editingLocale, editingTarget);
+    notifyListeners();
+    unawaited(_save());
+  }
+
+  void _clearCurrentLocaleTarget() {
+    final byLocale = Map<String, Map<String, double>>.from(
+      localeOverlays[editingLocale] ?? {},
+    );
+    byLocale.remove(editingTarget.id);
+    if (byLocale.isEmpty) {
+      localeOverlays.remove(editingLocale);
+    } else {
+      localeOverlays[editingLocale] = byLocale;
+    }
+    if (editingTarget == PlayUiTarget.common) {
+      common
+        ..clear()
+        ..addAll(defaults);
+    }
+  }
+
+  void _applySlice(Map<String, dynamic> map, String locale, PlayUiTarget target) {
+    Map<String, double>? fields;
+    final locales = map['locales'];
+    if (locales is Map<String, dynamic>) {
+      final byTarget = locales[locale];
+      if (byTarget is Map<String, dynamic>) {
+        fields = _overlayFrom(byTarget[target.id]);
+      }
+    }
+    fields ??= _overlayFrom(
+      map['targets'] is Map<String, dynamic>
+          ? (map['targets'] as Map<String, dynamic>)[target.id]
+          : null,
+    );
+    if (fields.isEmpty) return;
+    final byLocale = Map<String, Map<String, double>>.from(
+      localeOverlays[locale] ?? {},
+    );
+    byLocale[target.id] = fields;
+    localeOverlays[locale] = byLocale;
+  }
+
+  void _promoteOverlaysIntoLocales() {
+    if (overlays.isEmpty) return;
+    for (final locale in localeIds) {
+      final byTarget = Map<String, Map<String, double>>.from(
+        localeOverlays[locale] ?? {},
+      );
+      for (final entry in overlays.entries) {
+        final merged = Map<String, double>.from(byTarget[entry.key] ?? {});
+        for (final field in entry.value.entries) {
+          merged.putIfAbsent(field.key, () => field.value);
+        }
+        if (merged.isNotEmpty) byTarget[entry.key] = merged;
+      }
+      if (byTarget.isNotEmpty) localeOverlays[locale] = byTarget;
+    }
+    overlays.clear();
+  }
+
+  Map<String, dynamic> _snapshot() =>
+      jsonDecode(jsonEncode(toJsonObject())) as Map<String, dynamic>;
+
   Future<void> load() async {
+    final epoch = _epoch;
     final preferences = await SharedPreferences.getInstance();
+    if (_epoch != epoch) return;
     final raw = preferences.getString(_prefsKey) ??
         preferences.getString(_legacyPrefsKey);
     if (raw == null || raw.isEmpty) return;
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return;
+      if (_epoch != epoch) return;
       applyJson(decoded);
+      _checkpoint = _snapshot();
       notifyListeners();
     } catch (_) {}
   }
@@ -208,25 +421,77 @@ class PlayUiTune extends ChangeNotifier {
         _applyCommon(commonMap);
       }
       overlays.clear();
+      localeOverlays.clear();
       final targets = map['targets'];
       if (targets is Map<String, dynamic>) {
         for (final entry in targets.entries) {
-          if (PlayUiTarget.tryParse(entry.key) == null) continue;
-          final value = entry.value;
-          if (value is! Map<String, dynamic>) continue;
-          final overlay = <String, double>{};
-          for (final field in value.entries) {
-            if (field.value is num && defaults.containsKey(field.key)) {
-              overlay[field.key] = _clamp(field.key, (field.value as num).toDouble());
-            }
-          }
-          if (overlay.isNotEmpty) overlays[entry.key] = overlay;
+          final parsed = PlayUiTarget.tryParse(entry.key);
+          if (parsed == null) continue;
+          final overlay = _overlayFrom(entry.value);
+          if (overlay.isNotEmpty) overlays[parsed.id] = overlay;
         }
       }
+      final locales = map['locales'];
+      if (locales is Map<String, dynamic>) {
+        for (final localeEntry in locales.entries) {
+          if (!localeIds.contains(localeEntry.key)) continue;
+          final value = localeEntry.value;
+          if (value is! Map<String, dynamic>) continue;
+          final byTarget = <String, Map<String, double>>{};
+          for (final targetEntry in value.entries) {
+            final parsed = PlayUiTarget.tryParse(targetEntry.key);
+            if (parsed == null) continue;
+            final overlay = _overlayFrom(targetEntry.value);
+            if (overlay.isNotEmpty) byTarget[parsed.id] = overlay;
+          }
+          if (byTarget.isNotEmpty) localeOverlays[localeEntry.key] = byTarget;
+        }
+      }
+      _promoteOverlaysIntoLocales();
+      common['button'] = PlayUi.kButton;
+      _dropTitleButtonEleven();
       return;
     }
     overlays.clear();
+    localeOverlays.clear();
     _applyCommon(map);
+    common['button'] = PlayUi.kButton;
+    _dropTitleButtonEleven();
+  }
+
+  /// Saved title `button: 11` was the shared default leak. Title is 15.
+  void _dropTitleButtonEleven() {
+    for (final locale in List<String>.from(localeOverlays.keys)) {
+      final byLocale = Map<String, Map<String, double>>.from(
+        localeOverlays[locale]!,
+      );
+      final title = byLocale['titleButton'];
+      if (title == null || title['button'] == null) continue;
+      if ((title['button']! - PlayUi.kButton).abs() >= 0.001) continue;
+      final next = Map<String, double>.from(title)..remove('button');
+      if (next.isEmpty) {
+        byLocale.remove('titleButton');
+      } else {
+        byLocale['titleButton'] = next;
+      }
+      if (byLocale.isEmpty) {
+        localeOverlays.remove(locale);
+      } else {
+        localeOverlays[locale] = byLocale;
+      }
+    }
+  }
+
+  Map<String, double> _overlayFrom(Object? value) {
+    if (value is! Map) return {};
+    final overlay = <String, double>{};
+    for (final field in value.entries) {
+      final key = field.key.toString();
+      if (field.value is num && defaults.containsKey(key)) {
+        overlay[key] = _clamp(key, (field.value as num).toDouble());
+      }
+    }
+    return overlay;
   }
 
   void setPanelOpen(bool value) {
@@ -243,10 +508,14 @@ class PlayUiTune extends ChangeNotifier {
   }
 
   void reset() {
+    _epoch++;
     common
       ..clear()
       ..addAll(defaults);
     overlays.clear();
+    localeOverlays.clear();
+    editingLocale = 'ko';
+    _checkpoint = null;
     notifyListeners();
     unawaited(_save());
   }
@@ -300,11 +569,20 @@ class PlayUiTune extends ChangeNotifier {
     };
   }
 
-  Future<void> saveNow() => _save();
+  Future<String?> saveNow() async {
+    _epoch++;
+    _checkpoint = _snapshot();
+    await _save();
+    return savePlayUiLayout(layoutJson);
+  }
 
-  Future<void> _save() async {
+  Future<void> _save() {
+    _saveChain = _saveChain.catchError((_) {}).then((_) => _writePrefs());
+    return _saveChain;
+  }
+
+  Future<void> _writePrefs() async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_prefsKey, jsonEncode(toJsonObject()));
-    savePlayUiLayout(layoutJson);
   }
 }

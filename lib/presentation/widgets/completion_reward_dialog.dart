@@ -25,13 +25,16 @@ class CompletionRewardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nOf(context);
-    final primaryLabel = onNextLevel != null ? l10n.next : l10n.done;
-    final primaryAction = onNextLevel ?? onClose;
-
-    return ParchmentModal(
+    return PlayUiTokens(
       target: PlayUiTarget.completionReward,
-      child: Column(
+      builder: (context) {
+        final l10n = l10nOf(context);
+        final primaryLabel = onNextLevel != null ? l10n.next : l10n.done;
+        final primaryAction = onNextLevel ?? onClose;
+
+        return ParchmentModal(
+          target: PlayUiTarget.completionReward,
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -71,29 +74,26 @@ class CompletionRewardDialog extends StatelessWidget {
             style: PlayUi.captionStyle(),
           ),
           SizedBox(height: PlayUi.rowGap * 1.5),
-          Row(
+          ParchmentModalButtonRow(
             children: [
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.continueAsset,
-                  label: l10n.viewVillage,
-                  color: PlayUi.ink,
-                  onPressed: onViewVillage,
-                ),
+              ParchmentModalButton(
+                asset: ParchmentModal.continueAsset,
+                label: l10n.viewVillage,
+                color: PlayUi.ink,
+                onPressed: onViewVillage,
               ),
-              SizedBox(width: PlayUi.rowGap),
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.exitAsset,
-                  label: primaryLabel,
-                  color: PlayUi.cream,
-                  onPressed: primaryAction,
-                ),
+              ParchmentModalButton(
+                asset: ParchmentModal.exitAsset,
+                label: primaryLabel,
+                color: PlayUi.cream,
+                onPressed: primaryAction,
               ),
             ],
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

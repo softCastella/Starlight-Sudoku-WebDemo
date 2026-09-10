@@ -14,7 +14,9 @@ class PlayUi {
   static const double kCaption = 11;
   static const double kBody = 13;
   static const double kLabel = 14;
-  static const double kButton = 15;
+  static const double kButton = 11;
+  /// Title parchment only. Other buttons stay [kButton].
+  static const double kTitleButton = 15;
   static const double kTitle = 18;
   static const double kModalInset = 24;
   static const double kModalPadX = 40;
@@ -25,6 +27,8 @@ class PlayUi {
   static const double kButtonMaxWidth = 200;
   static const double kButtonMinWidth = 112;
   static const double kOvalEndFraction = 0.19;
+  /// Intro / modal oval height source. Long labels grow the middle only.
+  static const double kOvalCompactWidth = 80;
   static const double kScreenPad = 20;
   static const double kModalInsetY = 24;
   static const double kModalOffsetX = 0;
@@ -41,20 +45,43 @@ class PlayUi {
 
   static PlayUiTune get _tune => PlayUiTune.instance;
   static PlayUiTarget _target = PlayUiTarget.common;
+  static String _localeId = 'ko';
 
   static PlayUiTarget get currentTarget => _target;
 
-  static T using<T>(PlayUiTarget target, T Function() build) {
+  static T using<T>(
+    PlayUiTarget target,
+    T Function() build, {
+    Locale? locale,
+  }) {
     final previous = _target;
+    final previousLocale = _localeId;
     _target = target;
+    if (locale != null) {
+      _localeId = PlayUiTune.localeIdFrom(locale);
+    }
     try {
       return build();
     } finally {
       _target = previous;
+      _localeId = previousLocale;
     }
   }
 
-  static double _v(String key) => _tune.read(key, _target);
+  static double _v(String key) {
+    if (_tune.previewReads) {
+      return _tune.read(key, _tune.editingTarget, locale: _tune.editingLocale);
+    }
+    return _tune.read(key, _target, locale: _localeId);
+  }
+
+  /// Bind static reads to the nearest [PlayUiScope] (safe inside LayoutBuilder).
+  static void applyScope(BuildContext context) {
+    final scope = PlayUiScope.maybeOf(context);
+    if (scope == null) return;
+    _target = scope.target;
+    _localeId = scope.localeId;
+  }
 
   static double get caption => _v('caption');
   static double get body => _v('body');
@@ -137,6 +164,92 @@ class PlayUi {
       );
 }
 
+/// Binds the in-app editor to the screen or modal that is actually visible.
+class PlayUiBind extends StatefulWidget {
+  const PlayUiBind({
+    super.key,
+    required this.target,
+    required this.child,
+  });
+
+  final PlayUiTarget target;
+  final Widget child;
+
+  @override
+  State<PlayUiBind> createState() => _PlayUiBindState();
+}
+
+class _PlayUiBindState extends State<PlayUiBind> {
+  @override
+  void initState() {
+    super.initState();
+    PlayUiTune.instance.pushTarget(widget.target);
+  }
+
+  @override
+  void didUpdateWidget(PlayUiBind oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.target == widget.target) return;
+    PlayUiTune.instance.popTarget(oldWidget.target);
+    PlayUiTune.instance.pushTarget(widget.target);
+  }
+
+  @override
+  void dispose() {
+    PlayUiTune.instance.popTarget(widget.target);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Builds while [PlayUi] getters read [target]. Use for modal titles/body.
+class PlayUiTokens extends StatelessWidget {
+  const PlayUiTokens({
+    super.key,
+    required this.target,
+    required this.builder,
+  });
+
+  final PlayUiTarget target;
+  final WidgetBuilder builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: PlayUiTune.instance,
+      builder: (context, _) {
+        return PlayUi.using(
+          target,
+          () => builder(context),
+          locale: Localizations.localeOf(context),
+        );
+      },
+    );
+  }
+}
+
+/// Lets parchment buttons read the wrapping modal's target after [using] returns.
+class PlayUiScope extends InheritedWidget {
+  const PlayUiScope({
+    required this.target,
+    required this.localeId,
+    required super.child,
+    super.key,
+  });
+
+  final PlayUiTarget target;
+  final String localeId;
+
+  static PlayUiScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PlayUiScope>();
+
+  @override
+  bool updateShouldNotify(PlayUiScope oldWidget) =>
+      target != oldWidget.target || localeId != oldWidget.localeId;
+}
+
 /// Prefers [style] size, shrinks to [minFontSize], then wraps. Does not go below 11.
 class FitLabel extends StatelessWidget {
   const FitLabel(
@@ -201,73 +314,40 @@ class FitLabel extends StatelessWidget {
   }
 }
 
-/// Oval button size from the label. Grow first, then shrink type to 11.
+/// Oval chrome from width sliders. Font does not grow the button.
 class OvalButtonLayout {
   const OvalButtonLayout({
     required this.width,
     required this.height,
     required this.fontSize,
     required this.sideInset,
+    this.maxLines = 2,
   });
 
   final double width;
   final double height;
   final double fontSize;
   final double sideInset;
+  final int maxLines;
 
   static OvalButtonLayout forLabel(
     String label, {
     required TextDirection direction,
     double preferredFontSize = PlayUi.kButton,
     double maxWidth = PlayUi.kButtonMaxWidth,
+    double? heightScale,
     Color color = PlayUi.ink,
   }) {
-    final cap = math.max(1.0, maxWidth);
-    final minWidth = math.min(PlayUi.buttonMinWidth, cap);
-    var fontSize = preferredFontSize;
-    final preferred = PlayUi.buttonStyle(color: color).copyWith(
-      fontSize: fontSize,
-      height: 1,
-    );
-    final painter = TextPainter(
-      text: TextSpan(text: label, style: preferred),
-      maxLines: 1,
-      textDirection: direction,
-    )..layout();
-
-    final usableFraction = 1 - 2 * PlayUi.ovalEndFraction;
-    var width = (painter.width / usableFraction).clamp(minWidth, cap);
-    var sideInset = width * PlayUi.ovalEndFraction;
-    var usable = width - sideInset * 2;
-
-    if (painter.width > usable + 0.5) {
-      fontSize = math.max(
-        PlayUi.minType,
-        preferredFontSize * usable / painter.width,
-      );
-      final shrunk = TextPainter(
-        text: TextSpan(
-          text: label,
-          style: preferred.copyWith(fontSize: fontSize),
-        ),
-        maxLines: 1,
-        textDirection: direction,
-      )..layout();
-      if (shrunk.width > usable + 0.5 && width < cap) {
-        width = (shrunk.width / usableFraction).clamp(minWidth, cap);
-        sideInset = width * PlayUi.ovalEndFraction;
-        usable = width - sideInset * 2;
-      }
-      if (shrunk.width > usable + 0.5) {
-        fontSize = math.max(PlayUi.minType, fontSize * usable / shrunk.width);
-      }
-    }
-
+    final width = math.max(1.0, maxWidth);
+    final sideInset = width * PlayUi.ovalEndFraction;
+    final height =
+        (width / PlayUi.ovalAspect) * (heightScale ?? PlayUi.buttonHeightScale);
     return OvalButtonLayout(
       width: width,
-      height: (width / PlayUi.ovalAspect) * PlayUi.buttonHeightScale,
-      fontSize: fontSize,
+      height: height,
+      fontSize: preferredFontSize,
       sideInset: sideInset,
+      maxLines: 2,
     );
   }
 }

@@ -10,48 +10,48 @@ class GiveUpPuzzleDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nOf(context);
-
-    return ParchmentModal(
+    return PlayUiTokens(
       target: PlayUiTarget.giveUp,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.puzzleGiveUpTitle,
-            textAlign: TextAlign.center,
-            style: PlayUi.titleStyle(),
-          ),
-          SizedBox(height: PlayUi.rowGap),
-          Text(
-            l10n.puzzleGiveUpMessage,
-            textAlign: TextAlign.center,
-            style: PlayUi.bodyStyle(),
-          ),
-          SizedBox(height: PlayUi.rowGap * 1.5),
-          Row(
+      builder: (context) {
+        final l10n = l10nOf(context);
+
+        return ParchmentModal(
+          target: PlayUiTarget.giveUp,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.continueAsset,
-                  label: l10n.keepPlaying,
-                  color: PlayUi.ink,
-                  onPressed: () => Navigator.pop(context, false),
-                ),
+              Text(
+                l10n.puzzleGiveUpTitle,
+                textAlign: TextAlign.center,
+                style: PlayUi.titleStyle(),
               ),
-              SizedBox(width: PlayUi.rowGap),
-              Expanded(
-                child: ParchmentModalButton(
-                  asset: ParchmentModal.exitAsset,
-                  label: l10n.exitPuzzle,
-                  color: PlayUi.cream,
-                  onPressed: () => Navigator.pop(context, true),
-                ),
+              SizedBox(height: PlayUi.rowGap),
+              Text(
+                l10n.puzzleGiveUpMessage,
+                textAlign: TextAlign.center,
+                style: PlayUi.bodyStyle(),
+              ),
+              SizedBox(height: PlayUi.rowGap * 1.5),
+              ParchmentModalButtonRow(
+                children: [
+                  ParchmentModalButton(
+                    asset: ParchmentModal.continueAsset,
+                    label: l10n.keepPlaying,
+                    color: PlayUi.ink,
+                    onPressed: () => Navigator.pop(context, false),
+                  ),
+                  ParchmentModalButton(
+                    asset: ParchmentModal.exitAsset,
+                    label: l10n.exitPuzzle,
+                    color: PlayUi.cream,
+                    onPressed: () => Navigator.pop(context, true),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

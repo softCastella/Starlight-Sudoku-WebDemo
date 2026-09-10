@@ -7,6 +7,7 @@ import 'package:sudoku_game/presentation/audio/game_bgm.dart';
 import 'package:sudoku_game/presentation/audio/splash_voice.dart';
 import 'package:sudoku_game/presentation/audio/title_button_chime.dart';
 import 'package:sudoku_game/presentation/config/app_fonts.dart';
+import 'package:sudoku_game/presentation/app_navigator.dart';
 import 'package:sudoku_game/presentation/config/play_ui_tune.dart';
 import 'package:sudoku_game/presentation/notifiers/app_settings.dart';
 import 'package:sudoku_game/presentation/notifiers/game_notifier.dart';
@@ -21,8 +22,7 @@ class SudokuApp extends StatelessWidget {
   /// When set, skips device-language detection. Used by widget tests.
   final Locale? locale;
 
-  static final navigatorKey = GlobalKey<NavigatorState>();
-
+  static final navigatorKey = appNavigatorKey;
   static const _fallbackLocale = Locale('ko');
 
   static Locale _resolveLocale(Locale? locale, Iterable<Locale> supported) {

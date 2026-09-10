@@ -62,11 +62,14 @@ class _TrialEndDialogState extends State<TrialEndDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = l10nOf(context);
-
-    return ParchmentModal(
+    return PlayUiTokens(
       target: PlayUiTarget.trialEnd,
-      child: Column(
+      builder: (context) {
+        final l10n = l10nOf(context);
+
+        return ParchmentModal(
+          target: PlayUiTarget.trialEnd,
+          child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -84,31 +87,28 @@ class _TrialEndDialogState extends State<TrialEndDialog> {
             ),
           ),
           SizedBox(height: PlayUi.rowGap * 1.5),
-          Row(
+          ParchmentModalButtonRow(
             children: [
-              Expanded(
-                child: ParchmentModalButton(
-                  key: const Key('trial-end-store'),
-                  asset: ParchmentModal.exitAsset,
-                  label: l10n.sendReview,
-                  color: PlayUi.cream,
-                  onPressed: _openPlayStore,
-                ),
+              ParchmentModalButton(
+                key: const Key('trial-end-store'),
+                asset: ParchmentModal.exitAsset,
+                label: l10n.sendReview,
+                color: PlayUi.cream,
+                onPressed: _openPlayStore,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ParchmentModalButton(
-                  key: const Key('trial-end-close'),
-                  asset: ParchmentModal.continueAsset,
-                  label: l10n.close,
-                  color: PlayUi.ink,
-                  onPressed: () => Navigator.pop(context),
-                ),
+              ParchmentModalButton(
+                key: const Key('trial-end-close'),
+                asset: ParchmentModal.continueAsset,
+                label: l10n.close,
+                color: PlayUi.ink,
+                onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
         ],
       ),
+    );
+      },
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/config/play_ui_tune.dart';
@@ -13,10 +14,12 @@ class ParchmentButton extends StatefulWidget {
     required this.onPressed,
     this.onPressStart,
     this.fontSize,
+    this.targetId = 'parchment_button',
   });
 
   static const asset = 'assets/images/SystemUI/Button.png';
   static const imageAspectRatio = 2172 / 724;
+
   /// Button.png has empty padding above/below the scroll.
   static const cropHeightFactor = 0.686;
 
@@ -26,10 +29,13 @@ class ParchmentButton extends StatefulWidget {
 
   final String label;
   final VoidCallback? onPressed;
+
   /// Web SFX: fire on pointer-down before [onPressed] (navigation).
   final VoidCallback? onPressStart;
+
   /// Optional label size override (title buttons). Null = PlayUi.button.
   final double? fontSize;
+  final String targetId;
 
   @override
   State<ParchmentButton> createState() => _ParchmentButtonState();
@@ -58,82 +64,86 @@ class _ParchmentButtonState extends State<ParchmentButton> {
               final width = constraints.maxWidth.isFinite
                   ? math.min(constraints.maxWidth, PlayUi.buttonMaxWidth)
                   : PlayUi.buttonMaxWidth;
-              return Center(
-                child: SizedBox(
-                  key: const Key('parchment-button-chrome'),
-                  width: width,
-                  child: Semantics(
-                    button: true,
-                    enabled: enabled,
-                    label: widget.label,
-                    child: Listener(
-                      onPointerDown: enabled && widget.onPressStart != null
-                          ? (_) => widget.onPressStart?.call()
-                          : null,
-                      child: GestureDetector(
-                        onTap: widget.onPressed,
-                        onTapDown: enabled
-                            ? (_) => setState(() => _pressed = true)
+              return AnalyticsTapRegion(
+                targetId: widget.targetId,
+                targetType: 'button',
+                child: Center(
+                  child: SizedBox(
+                    key: const Key('parchment-button-chrome'),
+                    width: width,
+                    child: Semantics(
+                      button: true,
+                      enabled: enabled,
+                      label: widget.label,
+                      child: Listener(
+                        onPointerDown: enabled && widget.onPressStart != null
+                            ? (_) => widget.onPressStart?.call()
                             : null,
-                        onTapUp: enabled
-                            ? (_) => setState(() => _pressed = false)
-                            : null,
-                        onTapCancel: enabled
-                            ? () => setState(() => _pressed = false)
-                            : null,
-                        child: AnimatedScale(
-                          duration: const Duration(milliseconds: 90),
-                          scale: _pressed ? 0.97 : 1,
-                          // Button.png has empty padding above/below the scroll.
-                          child: ClipRect(
-                            child: Align(
-                              alignment: const Alignment(0, -0.23),
-                              heightFactor: ParchmentButton.cropHeightFactor,
-                              child: AspectRatio(
-                                aspectRatio: ParchmentButton.imageAspectRatio,
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  clipBehavior: Clip.hardEdge,
-                                  children: [
-                                    Positioned.fill(
-                                      child: Opacity(
-                                        opacity: enabled ? 1 : 0.55,
-                                        child: Image.asset(
-                                          ParchmentButton.asset,
-                                          fit: BoxFit.contain,
-                                          alignment: Alignment.center,
-                                          filterQuality: FilterQuality.medium,
+                        child: GestureDetector(
+                          onTap: widget.onPressed,
+                          onTapDown: enabled
+                              ? (_) => setState(() => _pressed = true)
+                              : null,
+                          onTapUp: enabled
+                              ? (_) => setState(() => _pressed = false)
+                              : null,
+                          onTapCancel: enabled
+                              ? () => setState(() => _pressed = false)
+                              : null,
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 90),
+                            scale: _pressed ? 0.97 : 1,
+                            // Button.png has empty padding above/below the scroll.
+                            child: ClipRect(
+                              child: Align(
+                                alignment: const Alignment(0, -0.23),
+                                heightFactor: ParchmentButton.cropHeightFactor,
+                                child: AspectRatio(
+                                  aspectRatio: ParchmentButton.imageAspectRatio,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    clipBehavior: Clip.hardEdge,
+                                    children: [
+                                      Positioned.fill(
+                                        child: Opacity(
+                                          opacity: enabled ? 1 : 0.55,
+                                          child: Image.asset(
+                                            ParchmentButton.asset,
+                                            fit: BoxFit.contain,
+                                            alignment: Alignment.center,
+                                            filterQuality: FilterQuality.medium,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Positioned.fill(
-                                      child: Padding(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: PlayUi.parchmentTextPad,
-                                        ),
-                                        child: Center(
-                                          child: Transform.translate(
-                                            offset: Offset(
-                                              PlayUi.buttonTextOffsetX,
-                                              PlayUi.buttonTextOffsetY,
-                                            ),
-                                            child: Text(
-                                              widget.label,
-                                              textAlign: TextAlign.center,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.clip,
-                                              style: TextStyle(
-                                                fontSize: fontSize,
-                                                fontWeight: FontWeight.w800,
-                                                color: _ink,
-                                                height: 1,
+                                      Positioned.fill(
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: PlayUi.parchmentTextPad,
+                                          ),
+                                          child: Center(
+                                            child: Transform.translate(
+                                              offset: Offset(
+                                                PlayUi.buttonTextOffsetX,
+                                                PlayUi.buttonTextOffsetY,
+                                              ),
+                                              child: Text(
+                                                widget.label,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.clip,
+                                                style: TextStyle(
+                                                  fontSize: fontSize,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: _ink,
+                                                  height: 1,
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

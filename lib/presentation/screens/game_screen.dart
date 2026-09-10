@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/config/game_balance.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
@@ -41,125 +42,153 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = l10nOf(context);
-    return BgmScope(
-      cue: BgmCue.silence,
-      child: PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _confirmGiveUp();
-      },
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF4F0E4),
-        appBar: AppBar(
-          backgroundColor: _night,
-          foregroundColor: _cream,
-          elevation: 0,
-          leading: IconButton(
-            tooltip: l10n.giveUpTooltip,
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _confirmGiveUp,
-          ),
-          title: Consumer<GameNotifier>(
-            builder: (context, gameNotifier, _) {
-              return Text(
-                l10n.gameLevelTitle(
-                  l10n.difficultyName(gameNotifier.difficulty),
-                  gameNotifier.currentLevel,
+    final game = context.read<GameNotifier>();
+    return AnalyticsScreen(
+      id: 'game',
+      stageId: game.currentLevel,
+      child: BgmScope(
+        cue: BgmCue.silence,
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) _confirmGiveUp();
+          },
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF4F0E4),
+            appBar: AppBar(
+              backgroundColor: _night,
+              foregroundColor: _cream,
+              elevation: 0,
+              leading: AnalyticsTapRegion(
+                targetId: 'home',
+                targetType: 'icon_button',
+                child: IconButton(
+                  tooltip: l10n.giveUpTooltip,
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: _confirmGiveUp,
                 ),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              );
-            },
-          ),
-          actions: [
-            Consumer<GameNotifier>(
+              ),
+              title: Consumer<GameNotifier>(
+                builder: (context, gameNotifier, _) {
+                  return Text(
+                    l10n.gameLevelTitle(
+                      l10n.difficultyName(gameNotifier.difficulty),
+                      gameNotifier.currentLevel,
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  );
+                },
+              ),
+              actions: [
+                Consumer<GameNotifier>(
+                  builder: (context, gameNotifier, _) {
+                    final paused = gameNotifier.isPaused;
+                    return AnalyticsTapRegion(
+                      targetId: paused ? 'resume' : 'pause',
+                      targetType: 'icon_button',
+                      interactionKind: paused ? 'resume' : 'pause',
+                      child: IconButton(
+                        tooltip: l10n.pauseTooltip,
+                        icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+                        onPressed: () => gameNotifier.togglePause(),
+                      ),
+                    );
+                  },
+                ),
+                AnalyticsTapRegion(
+                  targetId: 'restart',
+                  targetType: 'icon_button',
+                  interactionKind: 'restart',
+                  child: IconButton(
+                    tooltip: l10n.retryTooltip,
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _confirmRetry,
+                  ),
+                ),
+                if (GameBalance.showTrialSkipButton)
+                  AnalyticsTapRegion(
+                    targetId: 'debug_skip',
+                    targetType: 'icon_button',
+                    child: IconButton(
+                      tooltip: l10n.skipTrialTooltip,
+                      icon: const Icon(Icons.bug_report),
+                      onPressed: _skipTrialStages,
+                    ),
+                  ),
+                AnalyticsTapRegion(
+                  targetId: 'settings',
+                  targetType: 'icon_button',
+                  child: IconButton(
+                    key: const Key('game-settings'),
+                    tooltip: l10n.settingsTooltip,
+                    icon: const Icon(Icons.settings),
+                    onPressed: () => SettingsDialog.show(context),
+                  ),
+                ),
+              ],
+            ),
+            body: Consumer<GameNotifier>(
               builder: (context, gameNotifier, _) {
                 final paused = gameNotifier.isPaused;
-                return IconButton(
-                  tooltip: l10n.pauseTooltip,
-                  icon: Icon(paused ? Icons.play_arrow : Icons.pause),
-                  onPressed: () => gameNotifier.togglePause(),
-                );
-              },
-            ),
-            IconButton(
-              tooltip: l10n.retryTooltip,
-              icon: const Icon(Icons.refresh),
-              onPressed: _confirmRetry,
-            ),
-            if (GameBalance.showTrialSkipButton)
-              IconButton(
-                tooltip: l10n.skipTrialTooltip,
-                icon: const Icon(Icons.bug_report),
-                onPressed: _skipTrialStages,
-              ),
-            IconButton(
-              key: const Key('game-settings'),
-              tooltip: l10n.settingsTooltip,
-              icon: const Icon(Icons.settings),
-              onPressed: () => SettingsDialog.show(context),
-            ),
-          ],
-        ),
-        body: Consumer<GameNotifier>(
-          builder: (context, gameNotifier, _) {
-            final paused = gameNotifier.isPaused;
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                AbsorbPointer(
-                  absorbing: paused,
-                  child: PlayViewport(
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-                        child: Column(
-                          children: [
-                            const TimerWidget(),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final side =
-                                      constraints.maxWidth < constraints.maxHeight
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    AbsorbPointer(
+                      absorbing: paused,
+                      child: PlayViewport(
+                        child: SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                            child: Column(
+                              children: [
+                                const TimerWidget(),
+                                const SizedBox(height: 8),
+                                Expanded(
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final side =
+                                          constraints.maxWidth <
+                                              constraints.maxHeight
                                           ? constraints.maxWidth
                                           : constraints.maxHeight;
-                                  return Center(
-                                    child: SizedBox(
-                                      width: side,
-                                      height: side,
-                                      child: SudokuBoardWidget(
-                                        key: _boardKey,
-                                        onCellSelected: () {
-                                          setState(() {});
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                      return Center(
+                                        child: SizedBox(
+                                          width: side,
+                                          height: side,
+                                          child: SudokuBoardWidget(
+                                            key: _boardKey,
+                                            onCellSelected: () {
+                                              setState(() {});
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                _buildNumberRow(),
+                                const SizedBox(height: 8),
+                                _buildToolRow(),
+                              ],
                             ),
-                            const SizedBox(height: 8),
-                            _buildNumberRow(),
-                            const SizedBox(height: 8),
-                            _buildToolRow(),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-                if (paused)
-                  Positioned.fill(
-                    child: PausePuzzleOverlay(
-                      onResume: () => gameNotifier.togglePause(),
-                    ),
-                  ),
-              ],
-            );
-          },
+                    if (paused)
+                      Positioned.fill(
+                        child: PausePuzzleOverlay(
+                          onResume: () => gameNotifier.togglePause(),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -188,6 +217,7 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: _NumberKey(
                     label: '$number',
+                    targetId: 'number_$number',
                     onPressed: () => _handleNumberInput(number),
                   ),
                 ),
@@ -209,6 +239,7 @@ class _GameScreenState extends State<GameScreen> {
               flex: 3,
               child: _ToolKey(
                 label: l10n.delete,
+                targetId: 'erase',
                 emphasized: true,
                 onPressed: () => _handleNumberInput(0),
               ),
@@ -218,8 +249,12 @@ class _GameScreenState extends State<GameScreen> {
               flex: 3,
               child: _ToolKey(
                 label: _isMemoMode ? l10n.memoOn : l10n.memo,
+                targetId: 'memo_toggle',
                 selected: _isMemoMode,
-                onPressed: () => setState(() => _isMemoMode = !_isMemoMode),
+                onPressed: () {
+                  setState(() => _isMemoMode = !_isMemoMode);
+                  StarlightAnalytics.instance.track('memo_toggle');
+                },
               ),
             ),
             const SizedBox(width: 6),
@@ -227,6 +262,7 @@ class _GameScreenState extends State<GameScreen> {
               flex: 3,
               child: _ToolKey(
                 label: l10n.hintCount(gameNotifier.hintsRemaining),
+                targetId: 'hint',
                 onPressed: gameNotifier.hintsRemaining == 0 ? null : _showHint,
               ),
             ),
@@ -235,6 +271,7 @@ class _GameScreenState extends State<GameScreen> {
               flex: 3,
               child: _ToolKey(
                 label: l10n.undo,
+                targetId: 'undo',
                 onPressed: gameNotifier.canUndo ? gameNotifier.undo : null,
               ),
             ),
@@ -255,17 +292,16 @@ class _GameScreenState extends State<GameScreen> {
     final col = boardState.getSelectedCol();
 
     if (row == null || col == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10nOf(context).selectCellFirst)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10nOf(context).selectCellFirst)));
       return;
     }
 
     final board = gameNotifier.board;
     if (board.isFixedCell(row, col)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10nOf(context).fixedCell)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10nOf(context).fixedCell)));
       return;
     }
 
@@ -306,21 +342,22 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showHint() {
+    StarlightAnalytics.instance.track('hint_open');
     final boardState = _boardKey.currentState;
     final row = boardState?.getSelectedRow();
     final col = boardState?.getSelectedCol();
     if (row == null || col == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10nOf(context).selectHintCell)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10nOf(context).selectHintCell)));
       return;
     }
 
     final gameNotifier = context.read<GameNotifier>();
     if (!gameNotifier.showHint(row, col)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10nOf(context).hintUnavailable)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10nOf(context).hintUnavailable)));
       return;
     }
     HapticFeedback.selectionClick();
@@ -343,8 +380,17 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context) => const GiveUpPuzzleDialog(),
     );
     if (shouldGiveUp == true && mounted) {
+      final game = context.read<GameNotifier>();
+      StarlightAnalytics.instance.track(
+        'game_exit',
+        remainingCells: game.remainingCells,
+        mistakeCount: game.mistakesUsed,
+        hintCount: game.hintsUsed,
+        properties: {'reason': 'home'},
+      );
+      StarlightAnalytics.instance.track('home_click');
       if (GameBalance.isWebDemo) {
-        context.read<GameNotifier>().discardActiveGame();
+        game.discardActiveGame();
       }
       Navigator.pop(context);
     }
@@ -359,15 +405,18 @@ class _GameScreenState extends State<GameScreen> {
         final gameNotifier = context.read<GameNotifier>();
         return CompletionRewardDialog(
           starLight: gameNotifier.totalStarLight,
-          elapsedTimeLabel: l10nOf(context).formatElapsed(gameNotifier.elapsedSeconds),
+          elapsedTimeLabel: l10nOf(context)
+              .formatElapsed(gameNotifier.elapsedSeconds),
           isReplay: gameNotifier.totalStarLight == 0,
           onNextLevel: gameNotifier.hasNextLevel
               ? () {
+                  StarlightAnalytics.instance.track('next_stage_click');
                   Navigator.pop(context);
                   gameNotifier.startNextLevel();
                 }
               : null,
           onViewVillage: () {
+            StarlightAnalytics.instance.track('village_click');
             Navigator.pop(context);
             Navigator.pop(context);
             Navigator.push(
@@ -386,33 +435,43 @@ class _GameScreenState extends State<GameScreen> {
 }
 
 class _NumberKey extends StatelessWidget {
-  const _NumberKey({required this.label, required this.onPressed});
+  const _NumberKey({
+    required this.label,
+    required this.targetId,
+    required this.onPressed,
+  });
 
   final String label;
+  final String targetId;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 42,
-      child: Material(
-        color: const Color(0xFFFBF7EC),
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onPressed,
+    return AnalyticsTapRegion(
+      targetId: targetId,
+      targetType: 'number_key',
+      interactionKind: 'number_input',
+      child: SizedBox(
+        height: 42,
+        child: Material(
+          color: const Color(0xFFFBF7EC),
           borderRadius: BorderRadius.circular(8),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFD8CBB0)),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF24452D),
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFD8CBB0)),
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF24452D),
+                  ),
                 ),
               ),
             ),
@@ -426,12 +485,14 @@ class _NumberKey extends StatelessWidget {
 class _ToolKey extends StatelessWidget {
   const _ToolKey({
     required this.label,
+    required this.targetId,
     required this.onPressed,
     this.emphasized = false,
     this.selected = false,
   });
 
   final String label;
+  final String targetId;
   final VoidCallback? onPressed;
   final bool emphasized;
   final bool selected;
@@ -442,42 +503,49 @@ class _ToolKey extends StatelessWidget {
     final fill = !enabled
         ? const Color(0xFFE8E0D0)
         : selected
-            ? const Color(0xFFFFF0BB)
-            : emphasized
-                ? const Color(0xFFFFE4D6)
-                : const Color(0xFFFBF7EC);
-    final border = emphasized ? const Color(0xFFC66A45) : const Color(0xFFD8CBB0);
+        ? const Color(0xFFFFF0BB)
+        : emphasized
+        ? const Color(0xFFFFE4D6)
+        : const Color(0xFFFBF7EC);
+    final border = emphasized
+        ? const Color(0xFFC66A45)
+        : const Color(0xFFD8CBB0);
     final color = !enabled
         ? const Color(0xFF9AA59C)
         : emphasized
-            ? const Color(0xFF9A4D31)
-            : const Color(0xFF24452D);
+        ? const Color(0xFF9A4D31)
+        : const Color(0xFF24452D);
 
-    return SizedBox(
-      height: 44,
-      child: Material(
-        color: fill,
-        borderRadius: BorderRadius.circular(8),
-        child: InkWell(
-          onTap: onPressed,
+    return AnalyticsTapRegion(
+      targetId: targetId,
+      targetType: 'tool_button',
+      interactionKind: targetId,
+      child: SizedBox(
+        height: 44,
+        child: Material(
+          color: fill,
           borderRadius: BorderRadius.circular(8),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: border),
-            ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: color,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: border),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: color,
+                      ),
                     ),
                   ),
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/core/village/building_progress.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
@@ -29,95 +30,103 @@ class VillageMissionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<GameNotifier>(
-      builder: (context, gameNotifier, _) {
-        final dawn = gameNotifier.villageDawn;
-        final titleColor = Color.lerp(_cream, _ink, dawn)!;
+    return AnalyticsScreen(
+      id: 'village_missions',
+      child: Consumer<GameNotifier>(
+        builder: (context, gameNotifier, _) {
+          final dawn = gameNotifier.villageDawn;
+          final titleColor = Color.lerp(_cream, _ink, dawn)!;
 
-        final l10n = l10nOf(context);
-        return Scaffold(
-          backgroundColor: VillageSceneBackdrop.skyColor(dawn),
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            foregroundColor: titleColor,
-            elevation: 0,
-            title: Text(
-              l10n.missionsTitle,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: titleColor,
-                shadows: [
-                  Shadow(
-                    color: Color.fromRGBO(0, 0, 0, 0.45 * (1 - dawn)),
-                    blurRadius: 8,
-                  ),
-                ],
+          final l10n = l10nOf(context);
+          return Scaffold(
+            backgroundColor: VillageSceneBackdrop.skyColor(dawn),
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              foregroundColor: titleColor,
+              elevation: 0,
+              title: Text(
+                l10n.missionsTitle,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: titleColor,
+                  shadows: [
+                    Shadow(
+                      color: Color.fromRGBO(0, 0, 0, 0.45 * (1 - dawn)),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          body: Stack(
-            fit: StackFit.expand,
-            children: [
-              VillageSceneBackdrop(dawn: dawn),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color.fromRGBO(21, 36, 51, 0.33 * (1 - dawn)),
-                      Color.fromRGBO(18, 28, 26, 0.13 * (1 - dawn)),
-                      Color.fromRGBO(18, 28, 26, 0.6 * (1 - dawn)),
-                    ],
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                VillageSceneBackdrop(dawn: dawn),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color.fromRGBO(21, 36, 51, 0.33 * (1 - dawn)),
+                        Color.fromRGBO(18, 28, 26, 0.13 * (1 - dawn)),
+                        Color.fromRGBO(18, 28, 26, 0.6 * (1 - dawn)),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              SafeArea(
-                child: PlayViewport(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-                    children: [
-                      Text(
-                        l10n.missionsLead,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: Color.lerp(_cream, _ink, dawn),
-                          height: 1.4,
-                          shadows: [
-                            Shadow(
-                              color: Color.fromRGBO(0, 0, 0, 0.4 * (1 - dawn)),
-                              blurRadius: 8,
-                            ),
-                          ],
+                SafeArea(
+                  child: PlayViewport(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+                      children: [
+                        Text(
+                          l10n.missionsLead,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color.lerp(_cream, _ink, dawn),
+                            height: 1.4,
+                            shadows: [
+                              Shadow(
+                                color: Color.fromRGBO(
+                                  0,
+                                  0,
+                                  0,
+                                  0.4 * (1 - dawn),
+                                ),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.currentStarlight(gameNotifier.starLightBalance),
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: dawn < 1 ? PlayUi.gold : PlayUi.goldOnLight,
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.currentStarlight(gameNotifier.starLightBalance),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: dawn < 1 ? PlayUi.gold : PlayUi.goldOnLight,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      ...gameNotifier.buildings.map(
-                        (building) => _MissionCard(
-                          building: building,
-                          iconAsset: _iconAssets[building.id],
-                          accent: _accents[building.id] ?? _gold,
+                        const SizedBox(height: 20),
+                        ...gameNotifier.buildings.map(
+                          (building) => _MissionCard(
+                            building: building,
+                            iconAsset: _iconAssets[building.id],
+                            accent: _accents[building.id] ?? _gold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -238,7 +247,11 @@ class _MissionCardState extends State<_MissionCard> {
                               ),
                             ),
                             if (complete)
-                              const Icon(Icons.auto_awesome, color: _gold, size: 18),
+                              const Icon(
+                                Icons.auto_awesome,
+                                color: _gold,
+                                size: 18,
+                              ),
                           ],
                         ),
                         const SizedBox(height: 2),

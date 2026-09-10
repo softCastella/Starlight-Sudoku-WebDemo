@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:sudoku_game/analytics/starlight_analytics.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
@@ -25,75 +26,78 @@ class CompletionRewardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PlayUiTokens(
-      target: PlayUiTarget.completionReward,
-      builder: (context) {
-        final l10n = l10nOf(context);
-        final primaryLabel = onNextLevel != null ? l10n.next : l10n.done;
-        final primaryAction = onNextLevel ?? onClose;
+    return AnalyticsOverlay(
+      id: 'result',
+      child: PlayUiTokens(
+        target: PlayUiTarget.completionReward,
+        builder: (context) {
+          final l10n = l10nOf(context);
+          final primaryLabel = onNextLevel != null ? l10n.next : l10n.done;
+          final primaryAction = onNextLevel ?? onClose;
 
-        return ParchmentModal(
-          target: PlayUiTarget.completionReward,
-          child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l10n.puzzleComplete,
-            textAlign: TextAlign.center,
-            style: PlayUi.titleStyle(),
-          ),
-          SizedBox(height: PlayUi.rowGap),
-          Text(
-            isReplay ? l10n.alreadyCleared : l10n.starlightArrived,
-            textAlign: TextAlign.center,
-            style: PlayUi.bodyStyle(),
-          ),
-          if (!isReplay) ...[
-            SizedBox(height: PlayUi.rowGap),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          return ParchmentModal(
+            target: PlayUiTarget.completionReward,
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.star_rounded,
-                  color: PlayUi.gold,
-                  size: PlayUi.title,
-                ),
-                const SizedBox(width: 4),
                 Text(
-                  '+ $starLight StarLight',
-                  style: PlayUi.titleStyle(color: PlayUi.gold),
+                  l10n.puzzleComplete,
+                  textAlign: TextAlign.center,
+                  style: PlayUi.titleStyle(),
+                ),
+                SizedBox(height: PlayUi.rowGap),
+                Text(
+                  isReplay ? l10n.alreadyCleared : l10n.starlightArrived,
+                  textAlign: TextAlign.center,
+                  style: PlayUi.bodyStyle(),
+                ),
+                if (!isReplay) ...[
+                  SizedBox(height: PlayUi.rowGap),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.star_rounded,
+                        color: PlayUi.gold,
+                        size: PlayUi.title,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '+ $starLight StarLight',
+                        style: PlayUi.titleStyle(color: PlayUi.gold),
+                      ),
+                    ],
+                  ),
+                ],
+                SizedBox(height: PlayUi.rowGap / 2),
+                Text(
+                  l10n.elapsedTime(elapsedTimeLabel),
+                  textAlign: TextAlign.center,
+                  style: PlayUi.captionStyle(),
+                ),
+                SizedBox(height: PlayUi.rowGap * 1.5),
+                ParchmentModalButtonRow(
+                  children: [
+                    ParchmentModalButton(
+                      asset: ParchmentModal.continueAsset,
+                      label: l10n.viewVillage,
+                      color: PlayUi.ink,
+                      onPressed: onViewVillage,
+                    ),
+                    ParchmentModalButton(
+                      asset: ParchmentModal.exitAsset,
+                      label: primaryLabel,
+                      color: PlayUi.cream,
+                      onPressed: primaryAction,
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-          SizedBox(height: PlayUi.rowGap / 2),
-          Text(
-            l10n.elapsedTime(elapsedTimeLabel),
-            textAlign: TextAlign.center,
-            style: PlayUi.captionStyle(),
-          ),
-          SizedBox(height: PlayUi.rowGap * 1.5),
-          ParchmentModalButtonRow(
-            children: [
-              ParchmentModalButton(
-                asset: ParchmentModal.continueAsset,
-                label: l10n.viewVillage,
-                color: PlayUi.ink,
-                onPressed: onViewVillage,
-              ),
-              ParchmentModalButton(
-                asset: ParchmentModal.exitAsset,
-                label: primaryLabel,
-                color: PlayUi.cream,
-                onPressed: primaryAction,
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
-    );
-      },
     );
   }
 }

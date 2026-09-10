@@ -1,0 +1,146 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sudoku_game/core/config/game_balance.dart';
+import 'package:sudoku_game/core/progress/active_game_snapshot.dart';
+import 'package:sudoku_game/core/progress/player_statistics.dart';
+import 'package:sudoku_game/core/progress/stage_progress.dart';
+import 'package:sudoku_game/data/local/web_demo_session.dart';
+
+/// Persists account-wide progress independently from the active puzzle.
+class GameProgressStore {
+  GameProgressStore({bool? isWebDemo, bool Function()? beginDemoSession})
+    : _isWebDemo = isWebDemo ?? GameBalance.isWebDemo,
+      _beginDemoSession = beginDemoSession ?? beginWebDemoSession;
+
+  static const _starLightKey = 'star_light_balance';
+  static const _completedPuzzlesKey = 'completed_puzzles';
+  static const _totalPlaySecondsKey = 'total_play_seconds';
+  static const _easyCompletionsKey = 'easy_completions';
+  static const _normalCompletionsKey = 'normal_completions';
+  static const _hardCompletionsKey = 'hard_completions';
+  static const _activeGameKey = 'active_game';
+  static const _stageProgressKey = 'stage_progress';
+  static const _seenIntroKey = 'has_seen_opening_story';
+  static const _seenTrialEndKey = 'has_seen_trial_end';
+
+  static const _progressKeys = [
+    _starLightKey,
+    _completedPuzzlesKey,
+    _totalPlaySecondsKey,
+    _easyCompletionsKey,
+    _normalCompletionsKey,
+    _hardCompletionsKey,
+    _activeGameKey,
+    _stageProgressKey,
+    _seenIntroKey,
+    _seenTrialEndKey,
+  ];
+
+  final bool _isWebDemo;
+  final bool Function() _beginDemoSession;
+
+  Future<
+    ({
+      int starLightBalance,
+      PlayerStatistics statistics,
+      StageProgress stageProgress,
+      bool hasSeenOpeningStory,
+      bool hasSeenTrialEnd,
+    })
+  >
+  load() async {
+    final preferences = await SharedPreferences.getInstance();
+    await _resetProgressForNewWebDemoSession(preferences);
+    return (
+      starLightBalance: preferences.getInt(_starLightKey) ?? 0,
+      statistics: PlayerStatistics(
+        completedPuzzles: preferences.getInt(_completedPuzzlesKey) ?? 0,
+        totalPlaySeconds: preferences.getInt(_totalPlaySecondsKey) ?? 0,
+        easyCompletions: preferences.getInt(_easyCompletionsKey) ?? 0,
+        normalCompletions: preferences.getInt(_normalCompletionsKey) ?? 0,
+        hardCompletions: preferences.getInt(_hardCompletionsKey) ?? 0,
+      ),
+      stageProgress: StageProgress.fromJson(
+        _decodeJsonMap(preferences.getString(_stageProgressKey)),
+      ),
+      hasSeenOpeningStory: preferences.getBool(_seenIntroKey) ?? false,
+      hasSeenTrialEnd: preferences.getBool(_seenTrialEndKey) ?? false,
+    );
+  }
+
+  Future<void> _resetProgressForNewWebDemoSession(
+    SharedPreferences preferences,
+  ) async {
+    if (!_isWebDemo || !_beginDemoSession()) return;
+    await Future.wait(_progressKeys.map(preferences.remove));
+  }
+
+  Future<void> save({
+    required int starLightBalance,
+    required PlayerStatistics statistics,
+    required StageProgress stageProgress,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    await Future.wait([
+      preferences.setInt(_starLightKey, starLightBalance),
+      preferences.setInt(_completedPuzzlesKey, statistics.completedPuzzles),
+      preferences.setInt(_totalPlaySecondsKey, statistics.totalPlaySeconds),
+      preferences.setInt(_easyCompletionsKey, statistics.easyCompletions),
+      preferences.setInt(_normalCompletionsKey, statistics.normalCompletions),
+      preferences.setInt(_hardCompletionsKey, statistics.hardCompletions),
+      preferences.setString(
+        _stageProgressKey,
+        jsonEncode(stageProgress.toJson()),
+      ),
+    ]);
+  }
+
+  Future<void> saveHasSeenOpeningStory() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_seenIntroKey, true);
+  }
+
+  Future<void> saveHasSeenTrialEnd() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_seenTrialEndKey, true);
+  }
+
+  Map<String, dynamic>? _decodeJsonMap(String? encoded) {
+    if (encoded == null) return null;
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<ActiveGameSnapshot?> loadActiveGame() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encodedSnapshot = preferences.getString(_activeGameKey);
+    if (encodedSnapshot == null) return null;
+
+    try {
+      final decoded = jsonDecode(encodedSnapshot);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('Active game must be a JSON object.');
+      }
+      return ActiveGameSnapshot.fromJson(decoded);
+    } on Object {
+      await preferences.remove(_activeGameKey);
+      return null;
+    }
+  }
+
+  Future<void> saveActiveGame(ActiveGameSnapshot snapshot) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_activeGameKey, jsonEncode(snapshot.toJson()));
+  }
+
+  Future<void> clearActiveGame() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_activeGameKey);
+  }
+}

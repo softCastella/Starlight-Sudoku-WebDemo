@@ -1,0 +1,57 @@
+import 'package:flutter/material.dart';
+import 'package:sudoku_game/l10n/l10n_ext.dart';
+import 'package:sudoku_game/presentation/config/play_ui.dart';
+import 'package:sudoku_game/presentation/config/play_ui_target.dart';
+import 'package:sudoku_game/presentation/config/play_ui_tune.dart';
+import 'package:sudoku_game/presentation/widgets/parchment_modal.dart';
+
+class CreditsDialog extends StatelessWidget {
+  const CreditsDialog({super.key});
+
+  static Future<void> show(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      barrierColor: const Color(0xCC152433),
+      builder: (context) => const CreditsDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = l10nOf(context);
+    return ParchmentModal(
+      target: PlayUiTarget.credits,
+      shrinkContent: false,
+      aspectRatio: 0.92,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onLongPress: PlayUiTune.isEditorEnabled
+                ? () => PlayUiTune.instance.setPanelOpen(true)
+                : null,
+            child: FitLabel(
+              l10n.creditsTitle,
+              style: PlayUi.titleStyle(),
+              alignment: Alignment.center,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: PlayUi.rowGap),
+          Text(
+            l10n.creditsBody,
+            textAlign: TextAlign.center,
+            style: PlayUi.bodyStyle(color: PlayUi.ink),
+          ),
+          SizedBox(height: PlayUi.rowGap * 1.5),
+          ParchmentModalButton(
+            asset: ParchmentModal.continueAsset,
+            label: l10n.close,
+            color: PlayUi.ink,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+}

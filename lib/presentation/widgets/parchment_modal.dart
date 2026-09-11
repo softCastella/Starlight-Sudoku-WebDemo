@@ -349,14 +349,12 @@ class ParchmentModalButtonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) SizedBox(width: PlayUi.rowGap),
-          Flexible(fit: FlexFit.loose, child: children[i]),
-        ],
-      ],
+    return Wrap(
+      alignment: WrapAlignment.center,
+      runAlignment: WrapAlignment.center,
+      spacing: PlayUi.rowGap,
+      runSpacing: PlayUi.rowGap,
+      children: children,
     );
   }
 }

@@ -205,6 +205,60 @@ abstract class AppLocalizations {
   /// **'Play the full trial on Google Play!'**
   String get trialEndMessageWebDemo;
 
+  /// No description provided for @releaseNotifyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get release notice'**
+  String get releaseNotifyButton;
+
+  /// No description provided for @releaseNotifyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Be first to know'**
+  String get releaseNotifyTitle;
+
+  /// No description provided for @releaseNotifyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow browser notifications and we\'ll send one phone notification at launch. Tap it to open Google Play.'**
+  String get releaseNotifyBody;
+
+  /// No description provided for @releaseNotifyPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy policy'**
+  String get releaseNotifyPrivacy;
+
+  /// No description provided for @releaseNotifySubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow phone notification'**
+  String get releaseNotifySubmit;
+
+  /// No description provided for @releaseNotifySuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re subscribed. We\'ll notify your phone when the game launches.'**
+  String get releaseNotifySuccess;
+
+  /// No description provided for @releaseNotifyDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Please allow browser notifications to subscribe.'**
+  String get releaseNotifyDenied;
+
+  /// No description provided for @releaseNotifyUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This browser is not supported. Please try again in your phone\'s latest default browser.'**
+  String get releaseNotifyUnsupported;
+
+  /// No description provided for @releaseNotifyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t save your request. Please try again.'**
+  String get releaseNotifyFailed;
+
   /// No description provided for @sendReview.
   ///
   /// In en, this message translates to:

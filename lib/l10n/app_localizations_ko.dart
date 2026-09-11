@@ -67,6 +67,35 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trialEndMessageWebDemo => '정식 체험판을 구글스토어에서 만나보세요!';
 
   @override
+  String get releaseNotifyButton => '출시 알림 받기';
+
+  @override
+  String get releaseNotifyTitle => '별빛 소식을 가장 먼저 만나보세요';
+
+  @override
+  String get releaseNotifyBody =>
+      '브라우저 알림을 허용하면 출시 때 휴대폰으로 한 번 알려드려요. 알림을 누르면 Google Play로 이동합니다.';
+
+  @override
+  String get releaseNotifyPrivacy => '개인정보처리방침';
+
+  @override
+  String get releaseNotifySubmit => '휴대폰 알림 허용';
+
+  @override
+  String get releaseNotifySuccess => '신청됐어요. 출시할 때 휴대폰으로 알려드릴게요.';
+
+  @override
+  String get releaseNotifyDenied => '브라우저 알림을 허용해야 신청할 수 있어요.';
+
+  @override
+  String get releaseNotifyUnsupported =>
+      '이 브라우저에서는 지원되지 않아요. 휴대폰의 최신 기본 브라우저에서 다시 시도해주세요.';
+
+  @override
+  String get releaseNotifyFailed => '신청을 저장하지 못했어요. 잠시 후 다시 시도해주세요.';
+
+  @override
   String get sendReview => '이동하기';
 
   @override

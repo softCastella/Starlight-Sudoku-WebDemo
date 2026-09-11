@@ -53,6 +53,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TrialEndDialog), findsOneWidget);
+      if (GameBalance.isWebDemo) {
+        expect(find.byKey(const Key('trial-end-release-notify')), findsOneWidget);
+      }
       expect(find.byKey(const Key('trial-end-store')), findsOneWidget);
       expect(find.byKey(const Key('trial-end-close')), findsOneWidget);
       final storeButton = tester.widget<ParchmentModalButton>(

@@ -67,6 +67,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get trialEndMessageWebDemo => '本番の体験版は Google Play でどうぞ。';
 
   @override
+  String get releaseNotifyButton => '発売通知を受け取る';
+
+  @override
+  String get releaseNotifyTitle => '星明かりの便りをいち早く';
+
+  @override
+  String get releaseNotifyBody =>
+      'ブラウザ通知を許可すると、発売時にスマートフォンへ一度だけ通知します。タップすると Google Play が開きます。';
+
+  @override
+  String get releaseNotifyPrivacy => 'プライバシーポリシー';
+
+  @override
+  String get releaseNotifySubmit => 'スマホ通知を許可';
+
+  @override
+  String get releaseNotifySuccess => '登録しました。発売時にスマートフォンへ通知します。';
+
+  @override
+  String get releaseNotifyDenied => '登録するにはブラウザ通知を許可してください。';
+
+  @override
+  String get releaseNotifyUnsupported =>
+      'このブラウザでは利用できません。スマートフォンの最新の標準ブラウザでお試しください。';
+
+  @override
+  String get releaseNotifyFailed => '登録できませんでした。しばらくしてからもう一度お試しください。';
+
+  @override
   String get sendReview => '移動';
 
   @override

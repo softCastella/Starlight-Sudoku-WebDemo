@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:provider/provider.dart';
 import 'package:sudoku_game/analytics/starlight_analytics.dart';
+import 'package:sudoku_game/core/config/game_balance.dart';
 import 'package:sudoku_game/l10n/l10n_ext.dart';
 import 'package:sudoku_game/presentation/audio/game_bgm.dart';
 import 'package:sudoku_game/presentation/config/play_ui.dart';
 import 'package:sudoku_game/presentation/config/play_ui_target.dart';
 import 'package:sudoku_game/presentation/notifiers/game_notifier.dart';
 import 'package:sudoku_game/presentation/widgets/parchment_modal.dart';
+import 'package:sudoku_game/presentation/widgets/release_notification_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class TrialEndDialog extends StatefulWidget {
@@ -91,6 +93,21 @@ class _TrialEndDialogState extends State<TrialEndDialog> {
                   ),
                 ),
                 SizedBox(height: PlayUi.rowGap * 1.5),
+                if (GameBalance.isWebDemo) ...[
+                  ParchmentModalButtonRow(
+                    children: [
+                      ParchmentModalButton(
+                        key: const Key('trial-end-release-notify'),
+                        asset: ParchmentModal.exitAsset,
+                        label: l10n.releaseNotifyButton,
+                        color: PlayUi.cream,
+                        onPressed: () =>
+                            ReleaseNotificationDialog.show(context),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: PlayUi.rowGap),
+                ],
                 ParchmentModalButtonRow(
                   children: [
                     ParchmentModalButton(

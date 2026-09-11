@@ -67,6 +67,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trialEndMessageWebDemo => 'Play the full trial on Google Play!';
 
   @override
+  String get releaseNotifyButton => 'Get release notice';
+
+  @override
+  String get releaseNotifyTitle => 'Be first to know';
+
+  @override
+  String get releaseNotifyBody =>
+      'Allow browser notifications and we\'ll send one phone notification at launch. Tap it to open Google Play.';
+
+  @override
+  String get releaseNotifyPrivacy => 'Privacy policy';
+
+  @override
+  String get releaseNotifySubmit => 'Allow phone notification';
+
+  @override
+  String get releaseNotifySuccess =>
+      'You\'re subscribed. We\'ll notify your phone when the game launches.';
+
+  @override
+  String get releaseNotifyDenied =>
+      'Please allow browser notifications to subscribe.';
+
+  @override
+  String get releaseNotifyUnsupported =>
+      'This browser is not supported. Please try again in your phone\'s latest default browser.';
+
+  @override
+  String get releaseNotifyFailed =>
+      'We couldn\'t save your request. Please try again.';
+
+  @override
   String get sendReview => 'Go';
 
   @override

@@ -67,6 +67,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get trialEndMessageWebDemo => '请到 Google Play 体验完整试玩版。';
 
   @override
+  String get releaseNotifyButton => '接收发布通知';
+
+  @override
+  String get releaseNotifyTitle => '第一时间收到星光消息';
+
+  @override
+  String get releaseNotifyBody =>
+      '允许浏览器通知后，我们会在发布时向手机发送一次通知。点击通知即可前往 Google Play。';
+
+  @override
+  String get releaseNotifyPrivacy => '隐私政策';
+
+  @override
+  String get releaseNotifySubmit => '允许手机通知';
+
+  @override
+  String get releaseNotifySuccess => '申请成功。发布时我们会向您的手机发送通知。';
+
+  @override
+  String get releaseNotifyDenied => '请允许浏览器通知后再申请。';
+
+  @override
+  String get releaseNotifyUnsupported => '此浏览器不支持该功能。请使用手机上最新的默认浏览器重试。';
+
+  @override
+  String get releaseNotifyFailed => '无法保存申请，请稍后重试。';
+
+  @override
   String get sendReview => '前往';
 
   @override
@@ -461,6 +489,34 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get trialEndMessageWebDemo => '請到 Google Play 體驗完整試玩版。';
+
+  @override
+  String get releaseNotifyButton => '接收上市通知';
+
+  @override
+  String get releaseNotifyTitle => '第一時間收到星光消息';
+
+  @override
+  String get releaseNotifyBody =>
+      '允許瀏覽器通知後，我們會在上市時向手機傳送一次通知。點擊通知即可前往 Google Play。';
+
+  @override
+  String get releaseNotifyPrivacy => '隱私權政策';
+
+  @override
+  String get releaseNotifySubmit => '允許手機通知';
+
+  @override
+  String get releaseNotifySuccess => '申請成功。上市時我們會向您的手機傳送通知。';
+
+  @override
+  String get releaseNotifyDenied => '請允許瀏覽器通知後再申請。';
+
+  @override
+  String get releaseNotifyUnsupported => '此瀏覽器不支援此功能。請使用手機上最新的預設瀏覽器重試。';
+
+  @override
+  String get releaseNotifyFailed => '無法儲存申請，請稍後再試。';
 
   @override
   String get sendReview => '前往';

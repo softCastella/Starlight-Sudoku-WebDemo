@@ -340,8 +340,7 @@ class ParchmentModalButton extends StatelessWidget {
   }
 }
 
-/// Side-by-side modal ovals. Each keeps the close-button height and grows
-/// only as wide as its label.
+/// Modal ovals keep their label width and move to another line when needed.
 class ParchmentModalButtonRow extends StatelessWidget {
   const ParchmentModalButtonRow({super.key, required this.children});
 
@@ -349,14 +348,12 @@ class ParchmentModalButtonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) SizedBox(width: PlayUi.rowGap),
-          Flexible(fit: FlexFit.loose, child: children[i]),
-        ],
-      ],
+    return Wrap(
+      alignment: WrapAlignment.center,
+      runAlignment: WrapAlignment.center,
+      spacing: PlayUi.rowGap,
+      runSpacing: PlayUi.rowGap,
+      children: children,
     );
   }
 }

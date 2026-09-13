@@ -79,6 +79,8 @@ class _OvalImageButtonState extends State<OvalImageButton> {
                 final compact = widget.width;
                 late final OvalButtonLayout layout;
                 var stretchMiddle = false;
+                final buttonTextStyle = DefaultTextStyle.of(context).style
+                    .merge(PlayUi.buttonStyle(color: widget.color));
                 if (compact != null) {
                   // Skinny oval: height follows the compact width, not the
                   // modal chip. Font is PlayUi.button. Long labels grow
@@ -91,17 +93,17 @@ class _OvalImageButtonState extends State<OvalImageButton> {
                     final painter = TextPainter(
                       text: TextSpan(
                         text: widget.label,
-                        style: PlayUi.buttonStyle().copyWith(
-                          fontSize: PlayUi.button,
-                        ),
+                        style: buttonTextStyle,
                       ),
                       textDirection: Directionality.of(context),
                       maxLines: 1,
+                      textScaler: TextScaler.noScaling,
                     )..layout();
                     width = (painter.width + inset * 2 + 16).clamp(
                       math.min(compact, cap(maxW)),
                       cap(maxW),
                     );
+                    painter.dispose();
                   }
                   layout = OvalButtonLayout(
                     width: width,
@@ -124,8 +126,9 @@ class _OvalImageButtonState extends State<OvalImageButton> {
                   PlayUi.buttonTextOffsetY,
                 );
                 // Keep height: 1 from buttonStyle — 1.05 made glyphs sit low.
-                final textStyle = PlayUi.buttonStyle(color: widget.color)
-                    .copyWith(fontSize: layout.fontSize);
+                final textStyle = buttonTextStyle.copyWith(
+                  fontSize: layout.fontSize,
+                );
 
                 return AnalyticsTapRegion(
                   targetId: 'oval_${target.name}',
